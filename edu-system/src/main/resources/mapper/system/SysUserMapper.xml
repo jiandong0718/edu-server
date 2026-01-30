@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.system.mapper.SysUserMapper">
+
+    <resultMap id="SysUserResult" type="com.edu.system.domain.entity.SysUser">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="realName" column="real_name"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="avatar" column="avatar"/>
+        <result property="gender" column="gender"/>
+        <result property="status" column="status"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="lastLoginTime" column="last_login_time"/>
+        <result property="lastLoginIp" column="last_login_ip"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <collection property="roles" ofType="com.edu.system.domain.entity.SysRole">
+            <id property="id" column="role_id"/>
+            <result property="name" column="role_name"/>
+            <result property="code" column="role_code"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectByUsername" resultMap="SysUserResult">
+        SELECT u.*,
+               c.name as campus_name,
+               r.id as role_id,
+               r.name as role_name,
+               r.code as role_code
+        FROM sys_user u
+        LEFT JOIN sys_campus c ON u.campus_id = c.id
+        LEFT JOIN sys_user_role ur ON u.id = ur.user_id
+        LEFT JOIN sys_role r ON ur.role_id = r.id AND r.deleted = 0
+        WHERE u.username = #{username}
+          AND u.deleted = 0
+    </select>
+
+    <select id="selectUserList" resultMap="SysUserResult">
+        SELECT u.*,
+               c.name as campus_name,
+               r.id as role_id,
+               r.name as role_name,
+               r.code as role_code
+        FROM sys_user u
+        LEFT JOIN sys_campus c ON u.campus_id = c.id
+        LEFT JOIN sys_user_role ur ON u.id = ur.user_id
+        LEFT JOIN sys_role r ON ur.role_id = r.id AND r.deleted = 0
+        WHERE u.deleted = 0
+        <if test="user.username != null and user.username != ''">
+            AND u.username LIKE CONCAT('%', #{user.username}, '%')
+        </if>
+        <if test="user.realName != null and user.realName != ''">
+            AND u.real_name LIKE CONCAT('%', #{user.realName}, '%')
+        </if>
+        <if test="user.phone != null and user.phone != ''">
+            AND u.phone LIKE CONCAT('%', #{user.phone}, '%')
+        </if>
+        <if test="user.status != null">
+            AND u.status = #{user.status}
+        </if>
+        <if test="user.campusId != null">
+            AND u.campus_id = #{user.campusId}
+        </if>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <select id="selectRoleCodesByUserId" resultType="java.lang.String">
+        SELECT r.code
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+          AND r.deleted = 0
+    </select>
+
+    <select id="selectPermissionsByUserId" resultType="java.lang.String">
+        SELECT DISTINCT m.permission
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND m.permission IS NOT NULL
+          AND m.permission != ''
+          AND m.status = 1
+          AND m.deleted = 0
+    </select>
+
+</mapper>

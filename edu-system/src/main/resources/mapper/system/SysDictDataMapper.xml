@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.system.mapper.SysDictDataMapper">
+
+    <select id="selectByDictCode" resultType="com.edu.system.domain.entity.SysDictData">
+        SELECT d.*
+        FROM sys_dict_data d
+        INNER JOIN sys_dict_type t ON d.dict_type_id = t.id
+        WHERE t.code = #{dictCode}
+          AND t.status = 1
+          AND t.deleted = 0
+          AND d.status = 1
+          AND d.deleted = 0
+        ORDER BY d.sort_order
+    </select>
+
+</mapper>
