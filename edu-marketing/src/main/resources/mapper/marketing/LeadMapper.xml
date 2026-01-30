@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.marketing.mapper.LeadMapper">
+
+    <resultMap id="LeadResult" type="com.edu.marketing.domain.entity.Lead">
+        <id property="id" column="id"/>
+        <result property="leadNo" column="lead_no"/>
+        <result property="name" column="name"/>
+        <result property="phone" column="phone"/>
+        <result property="gender" column="gender"/>
+        <result property="age" column="age"/>
+        <result property="source" column="source"/>
+        <result property="sourceDetail" column="source_detail"/>
+        <result property="intentCourseId" column="intent_course_id"/>
+        <result property="intentCourseName" column="intent_course_name"/>
+        <result property="intentLevel" column="intent_level"/>
+        <result property="status" column="status"/>
+        <result property="advisorId" column="advisor_id"/>
+        <result property="advisorName" column="advisor_name"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="nextFollowTime" column="next_follow_time"/>
+        <result property="lastFollowTime" column="last_follow_time"/>
+        <result property="followCount" column="follow_count"/>
+        <result property="lostReason" column="lost_reason"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectLeadPage" resultMap="LeadResult">
+        SELECT l.*,
+               u.real_name as advisor_name,
+               ca.name as campus_name,
+               co.name as intent_course_name
+        FROM mkt_lead l
+        LEFT JOIN sys_user u ON l.advisor_id = u.id
+        LEFT JOIN sys_campus ca ON l.campus_id = ca.id
+        LEFT JOIN tch_course co ON l.intent_course_id = co.id
+        WHERE l.deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND l.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.phone != null and query.phone != ''">
+            AND l.phone LIKE CONCAT('%', #{query.phone}, '%')
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND l.status = #{query.status}
+        </if>
+        <if test="query.source != null and query.source != ''">
+            AND l.source = #{query.source}
+        </if>
+        <if test="query.advisorId != null">
+            AND l.advisor_id = #{query.advisorId}
+        </if>
+        <if test="query.campusId != null">
+            AND l.campus_id = #{query.campusId}
+        </if>
+        <if test="query.intentLevel != null and query.intentLevel != ''">
+            AND l.intent_level = #{query.intentLevel}
+        </if>
+        ORDER BY l.create_time DESC
+    </select>
+
+</mapper>
