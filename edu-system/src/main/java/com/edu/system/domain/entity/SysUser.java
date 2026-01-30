@@ -73,6 +73,26 @@ public class SysUser extends BaseEntity {
     private String lastLoginIp;
 
     /**
+     * 登录失败次数
+     */
+    private Integer loginFailCount;
+
+    /**
+     * 锁定时间
+     */
+    private LocalDateTime lockTime;
+
+    /**
+     * 是否首次登录：0-否，1-是
+     */
+    private Integer isFirstLogin;
+
+    /**
+     * 密码修改时间
+     */
+    private LocalDateTime passwordUpdateTime;
+
+    /**
      * 备注
      */
     private String remark;

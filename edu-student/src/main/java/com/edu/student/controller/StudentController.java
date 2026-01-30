@@ -9,8 +9,15 @@ import com.edu.student.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -98,5 +105,27 @@ public class StudentController {
     @PutMapping("/{studentId}/tags")
     public R<Boolean> setTags(@PathVariable Long studentId, @RequestBody List<Long> tagIds) {
         return R.ok(studentService.setTags(studentId, tagIds));
+    }
+
+    // ==================== 导入导出 ====================
+
+    @Operation(summary = "导出学员数据")
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> export(Student query) {
+        byte[] data = studentService.exportToExcel(query);
+        String fileName = "students_" + System.currentTimeMillis() + ".xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(data);
+    }
+
+    @Operation(summary = "批量导入学员数据")
+    @PostMapping("/import")
+    public R<Boolean> importData(@RequestParam("file") MultipartFile file) throws IOException {
+        byte[] fileData = file.getBytes();
+        return R.ok(studentService.importFromExcel(fileData));
     }
 }

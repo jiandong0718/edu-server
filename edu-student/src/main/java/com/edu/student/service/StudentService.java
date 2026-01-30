@@ -71,4 +71,14 @@ public interface StudentService extends IService<Student> {
      * 检查手机号是否已存在
      */
     boolean checkPhoneExists(String phone, Long excludeId);
+
+    /**
+     * 导出学员数据到Excel
+     */
+    byte[] exportToExcel(Student query);
+
+    /**
+     * 批量导入学员数据
+     */
+    boolean importFromExcel(byte[] fileData);
 }

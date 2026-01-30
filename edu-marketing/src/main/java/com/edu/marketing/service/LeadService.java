@@ -56,4 +56,14 @@ public interface LeadService extends IService<Lead> {
      * 检查手机号是否已存在
      */
     boolean checkPhoneExists(String phone, Long excludeId);
+
+    /**
+     * 批量导入线索
+     */
+    boolean importFromExcel(byte[] fileData);
+
+    /**
+     * 自动分配线索
+     */
+    boolean autoAssignLeads(List<Long> leadIds, Long campusId);
 }

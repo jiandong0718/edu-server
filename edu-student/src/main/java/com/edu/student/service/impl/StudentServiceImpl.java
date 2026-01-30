@@ -2,6 +2,9 @@ package com.edu.student.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.poi.excel.ExcelReader;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,7 +18,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 学员服务实现
@@ -176,5 +185,135 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             }
         }
         return prefix + String.format("%04d", seq);
+    }
+
+    @Override
+    public byte[] exportToExcel(Student query) {
+        try {
+            // 查询数据
+            LambdaQueryWrapper<Student> wrapper = new LambdaQueryWrapper<>();
+            if (query != null) {
+                wrapper.like(StrUtil.isNotBlank(query.getName()), Student::getName, query.getName())
+                        .like(StrUtil.isNotBlank(query.getStudentNo()), Student::getStudentNo, query.getStudentNo())
+                        .like(StrUtil.isNotBlank(query.getPhone()), Student::getPhone, query.getPhone())
+                        .eq(StrUtil.isNotBlank(query.getStatus()), Student::getStatus, query.getStatus())
+                        .eq(query.getCampusId() != null, Student::getCampusId, query.getCampusId());
+            }
+            List<Student> students = list(wrapper);
+
+            // 创建Excel
+            ExcelWriter writer = ExcelUtil.getWriter(true);
+
+            // 设置表头
+            writer.addHeaderAlias("studentNo", "学员编号");
+            writer.addHeaderAlias("name", "姓名");
+            writer.addHeaderAlias("gender", "性别");
+            writer.addHeaderAlias("birthday", "出生日期");
+            writer.addHeaderAlias("phone", "手机号");
+            writer.addHeaderAlias("school", "学校");
+            writer.addHeaderAlias("grade", "年级");
+            writer.addHeaderAlias("status", "状态");
+            writer.addHeaderAlias("source", "来源");
+            writer.addHeaderAlias("campusName", "校区");
+            writer.addHeaderAlias("advisorName", "顾问");
+            writer.addHeaderAlias("remark", "备注");
+
+            // 写入数据
+            writer.write(students, true);
+
+            // 输出到字节数组
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            writer.flush(out);
+            writer.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("导出失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean importFromExcel(byte[] fileData) {
+        try {
+            ExcelReader reader = ExcelUtil.getReader(new ByteArrayInputStream(fileData));
+
+            // 设置表头别名
+            reader.addHeaderAlias("学员编号", "studentNo");
+            reader.addHeaderAlias("姓名", "name");
+            reader.addHeaderAlias("性别", "gender");
+            reader.addHeaderAlias("出生日期", "birthday");
+            reader.addHeaderAlias("手机号", "phone");
+            reader.addHeaderAlias("学校", "school");
+            reader.addHeaderAlias("年级", "grade");
+            reader.addHeaderAlias("状态", "status");
+            reader.addHeaderAlias("来源", "source");
+            reader.addHeaderAlias("备注", "remark");
+
+            // 读取数据
+            List<Map<String, Object>> rows = reader.readAll();
+            List<Student> students = new ArrayList<>();
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+            for (Map<String, Object> row : rows) {
+                Student student = new Student();
+                student.setStudentNo((String) row.get("studentNo"));
+                student.setName((String) row.get("name"));
+
+                // 性别转换
+                Object genderObj = row.get("gender");
+                if (genderObj != null) {
+                    String genderStr = genderObj.toString();
+                    if ("男".equals(genderStr)) {
+                        student.setGender(1);
+                    } else if ("女".equals(genderStr)) {
+                        student.setGender(2);
+                    } else {
+                        student.setGender(0);
+                    }
+                }
+
+                // 出生日期转换
+                Object birthdayObj = row.get("birthday");
+                if (birthdayObj != null) {
+                    try {
+                        student.setBirthday(LocalDate.parse(birthdayObj.toString(), dateFormatter));
+                    } catch (Exception e) {
+                        // 忽略日期解析错误
+                    }
+                }
+
+                student.setPhone((String) row.get("phone"));
+                student.setSchool((String) row.get("school"));
+                student.setGrade((String) row.get("grade"));
+                student.setStatus((String) row.get("status"));
+                student.setSource((String) row.get("source"));
+                student.setRemark((String) row.get("remark"));
+
+                // 验证必填字段
+                if (StrUtil.isBlank(student.getName())) {
+                    continue; // 跳过姓名为空的记录
+                }
+
+                // 生成学员编号（如果为空）
+                if (StrUtil.isBlank(student.getStudentNo())) {
+                    student.setStudentNo(generateStudentNo());
+                }
+
+                // 默认状态
+                if (StrUtil.isBlank(student.getStatus())) {
+                    student.setStatus("potential");
+                }
+
+                students.add(student);
+            }
+
+            // 批量保存
+            if (!students.isEmpty()) {
+                return saveBatch(students);
+            }
+            return true;
+        } catch (Exception e) {
+            throw new BusinessException("导入失败：" + e.getMessage());
+        }
     }
 }

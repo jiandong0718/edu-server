@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -98,5 +100,20 @@ public class LeadController {
     public R<Boolean> addFollowUp(@PathVariable Long leadId, @RequestBody FollowUp followUp) {
         followUp.setLeadId(leadId);
         return R.ok(leadService.addFollowUp(followUp));
+    }
+
+    // ==================== 导入导出 ====================
+
+    @Operation(summary = "批量导入线索")
+    @PostMapping("/import")
+    public R<Boolean> importData(@RequestParam("file") MultipartFile file) throws IOException {
+        byte[] fileData = file.getBytes();
+        return R.ok(leadService.importFromExcel(fileData));
+    }
+
+    @Operation(summary = "自动分配线索")
+    @PostMapping("/auto-assign")
+    public R<Boolean> autoAssign(@RequestBody List<Long> leadIds, @RequestParam Long campusId) {
+        return R.ok(leadService.autoAssignLeads(leadIds, campusId));
     }
 }
