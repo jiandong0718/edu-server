@@ -2,6 +2,20 @@
 
 教育机构学生管理系统 - 后端服务
 
+## 项目进度
+
+| 模块 | 状态 | 说明 |
+|------|------|------|
+| edu-common | ✅ 完成 | 公共工具类、异常处理、错误码 |
+| edu-framework | ✅ 完成 | JWT认证、数据权限、文件上传、定时任务、操作日志 |
+| edu-system | ✅ 完成 | 用户、角色、菜单、校区、字典管理 |
+| edu-student | ✅ 完成 | 学员、联系人、标签管理 |
+| edu-teaching | ✅ 完成 | 课程、班级、排课、教师管理 |
+| edu-finance | ✅ 完成 | 合同、收款、课时账户管理 |
+| edu-marketing | ✅ 完成 | 线索、跟进记录管理 |
+| edu-notification | ✅ 完成 | 通知、站内信、消息模板管理 |
+| edu-admin | ✅ 完成 | 启动模块、Docker部署 |
+
 ## 技术栈
 
 - Java 17+
@@ -35,17 +49,29 @@ edu-admin-api/
 
 ## 快速开始
 
-### 1. 创建数据库
+### 方式一：Docker 部署（推荐）
+
+```bash
+# 启动所有服务（MySQL + Redis + 应用）
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f edu-admin
+```
+
+### 方式二：本地开发
+
+#### 1. 创建数据库
 
 ```sql
 CREATE DATABASE edu_admin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
-### 2. 修改配置
+#### 2. 修改配置
 
 编辑 `edu-admin/src/main/resources/application-dev.yml`，配置数据库和 Redis 连接信息。
 
-### 3. 编译运行
+#### 3. 编译运行
 
 ```bash
 # 编译
@@ -55,10 +81,24 @@ mvn clean install -DskipTests
 mvn spring-boot:run -pl edu-admin
 ```
 
-### 4. 访问
+#### 4. 访问
 
 - API 文档：http://localhost:8080/doc.html
 - 健康检查：http://localhost:8080/actuator/health
+
+## 功能特性
+
+### 安全认证
+- JWT Token 认证
+- 基于角色的权限控制 (RBAC)
+- 多校区数据隔离
+
+### 基础设施
+- 文件上传（本地/OSS）
+- 操作日志 AOP 切面
+- 定时任务调度
+- 全局异常处理
+- API 文档自动生成
 
 ## 开发规范
 
