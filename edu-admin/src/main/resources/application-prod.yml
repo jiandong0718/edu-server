@@ -1,0 +1,87 @@
+spring:
+  # 数据源配置（通过环境变量覆盖）
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/edu_admin?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      # 连接池监控
+      stat-view-servlet:
+        enabled: false
+      web-stat-filter:
+        enabled: false
+
+  # Redis 配置
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 4
+
+  # Flyway 配置
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    table: flyway_schema_history
+    validate-on-migrate: true
+
+# 日志配置
+logging:
+  level:
+    com.edu: info
+    org.springframework: warn
+  file:
+    name: /app/logs/edu-admin.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:edu-admin-secret-key-must-be-at-least-256-bits-long-for-security}
+  expiration: ${JWT_EXPIRATION:86400}
+
+# 文件存储配置
+file:
+  local:
+    base-path: ${FILE_LOCAL_BASE_PATH:/data/files}
+    base-url: ${FILE_LOCAL_BASE_URL:/files}
+  oss:
+    enabled: ${FILE_OSS_ENABLED:false}
+    endpoint: ${FILE_OSS_ENDPOINT:}
+    access-key: ${FILE_OSS_ACCESS_KEY:}
+    secret-key: ${FILE_OSS_SECRET_KEY:}
+    bucket: ${FILE_OSS_BUCKET:}
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
