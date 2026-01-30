@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.teaching.mapper.HomeworkMapper">
+
+    <resultMap id="HomeworkResult" type="com.edu.teaching.domain.entity.Homework">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="classId" column="class_id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="teacherId" column="teacher_id"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="type" column="type"/>
+        <result property="deadline" column="deadline"/>
+        <result property="attachments" column="attachments"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="className" column="class_name"/>
+        <result property="courseName" column="course_name"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="submitCount" column="submit_count"/>
+        <result property="studentCount" column="student_count"/>
+    </resultMap>
+
+    <select id="selectHomeworkPage" resultMap="HomeworkResult">
+        SELECT h.*,
+               cl.name as class_name,
+               co.name as course_name,
+               t.name as teacher_name,
+               (SELECT COUNT(*) FROM tch_homework_submit hs WHERE hs.homework_id = h.id AND hs.deleted = 0) as submit_count,
+               (SELECT COUNT(*) FROM tch_class_student cs WHERE cs.class_id = h.class_id AND cs.status = 'active') as student_count
+        FROM tch_homework h
+        LEFT JOIN tch_class cl ON h.class_id = cl.id
+        LEFT JOIN tch_course co ON h.course_id = co.id
+        LEFT JOIN tch_teacher t ON h.teacher_id = t.id
+        WHERE h.deleted = 0
+        <if test="query.classId != null">
+            AND h.class_id = #{query.classId}
+        </if>
+        <if test="query.courseId != null">
+            AND h.course_id = #{query.courseId}
+        </if>
+        <if test="query.teacherId != null">
+            AND h.teacher_id = #{query.teacherId}
+        </if>
+        <if test="query.campusId != null">
+            AND h.campus_id = #{query.campusId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND h.status = #{query.status}
+        </if>
+        <if test="query.type != null and query.type != ''">
+            AND h.type = #{query.type}
+        </if>
+        <if test="query.title != null and query.title != ''">
+            AND h.title LIKE CONCAT('%', #{query.title}, '%')
+        </if>
+        ORDER BY h.create_time DESC
+    </select>
+
+</mapper>

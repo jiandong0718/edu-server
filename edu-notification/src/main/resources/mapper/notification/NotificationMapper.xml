@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.notification.mapper.NotificationMapper">
+
+    <resultMap id="NotificationResult" type="com.edu.notification.domain.entity.Notification">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="type" column="type"/>
+        <result property="channel" column="channel"/>
+        <result property="receiverType" column="receiver_type"/>
+        <result property="receiverId" column="receiver_id"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="bizType" column="biz_type"/>
+        <result property="bizId" column="biz_id"/>
+        <result property="sendStatus" column="send_status"/>
+        <result property="sendTime" column="send_time"/>
+        <result property="scheduledTime" column="scheduled_time"/>
+        <result property="senderId" column="sender_id"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="senderName" column="sender_name"/>
+        <result property="receiverName" column="receiver_name"/>
+    </resultMap>
+
+    <select id="selectNotificationPage" resultMap="NotificationResult">
+        SELECT n.*,
+               u.real_name as sender_name
+        FROM msg_notification n
+        LEFT JOIN sys_user u ON n.sender_id = u.id
+        WHERE n.deleted = 0
+        <if test="query.type != null and query.type != ''">
+            AND n.type = #{query.type}
+        </if>
+        <if test="query.channel != null and query.channel != ''">
+            AND n.channel = #{query.channel}
+        </if>
+        <if test="query.sendStatus != null and query.sendStatus != ''">
+            AND n.send_status = #{query.sendStatus}
+        </if>
+        <if test="query.campusId != null">
+            AND n.campus_id = #{query.campusId}
+        </if>
+        <if test="query.title != null and query.title != ''">
+            AND n.title LIKE CONCAT('%', #{query.title}, '%')
+        </if>
+        ORDER BY n.create_time DESC
+    </select>
+
+</mapper>

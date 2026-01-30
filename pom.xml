@@ -20,6 +20,7 @@
         <module>edu-teaching</module>
         <module>edu-finance</module>
         <module>edu-marketing</module>
+        <module>edu-notification</module>
         <module>edu-admin</module>
     </modules>
 
@@ -100,6 +101,11 @@
             <dependency>
                 <groupId>com.edu</groupId>
                 <artifactId>edu-marketing</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.edu</groupId>
+                <artifactId>edu-notification</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

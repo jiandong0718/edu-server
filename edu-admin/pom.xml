@@ -37,6 +37,10 @@
             <groupId>com.edu</groupId>
             <artifactId>edu-marketing</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.edu</groupId>
+            <artifactId>edu-notification</artifactId>
+        </dependency>
 
         <!-- Spring Boot Test -->
         <dependency>
