@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.student.mapper.StudentMapper">
+
+    <resultMap id="StudentResult" type="com.edu.student.domain.entity.Student">
+        <id property="id" column="id"/>
+        <result property="studentNo" column="student_no"/>
+        <result property="name" column="name"/>
+        <result property="gender" column="gender"/>
+        <result property="birthday" column="birthday"/>
+        <result property="phone" column="phone"/>
+        <result property="avatar" column="avatar"/>
+        <result property="school" column="school"/>
+        <result property="grade" column="grade"/>
+        <result property="status" column="status"/>
+        <result property="source" column="source"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="advisorId" column="advisor_id"/>
+        <result property="advisorName" column="advisor_name"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectStudentPage" resultMap="StudentResult">
+        SELECT s.*,
+               c.name as campus_name,
+               u.real_name as advisor_name
+        FROM stu_student s
+        LEFT JOIN sys_campus c ON s.campus_id = c.id
+        LEFT JOIN sys_user u ON s.advisor_id = u.id
+        WHERE s.deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND s.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.phone != null and query.phone != ''">
+            AND s.phone LIKE CONCAT('%', #{query.phone}, '%')
+        </if>
+        <if test="query.studentNo != null and query.studentNo != ''">
+            AND s.student_no LIKE CONCAT('%', #{query.studentNo}, '%')
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND s.status = #{query.status}
+        </if>
+        <if test="query.source != null and query.source != ''">
+            AND s.source = #{query.source}
+        </if>
+        <if test="query.campusId != null">
+            AND s.campus_id = #{query.campusId}
+        </if>
+        <if test="query.advisorId != null">
+            AND s.advisor_id = #{query.advisorId}
+        </if>
+        ORDER BY s.create_time DESC
+    </select>
+
+    <select id="selectStudentDetail" resultMap="StudentResult">
+        SELECT s.*,
+               c.name as campus_name,
+               u.real_name as advisor_name
+        FROM stu_student s
+        LEFT JOIN sys_campus c ON s.campus_id = c.id
+        LEFT JOIN sys_user u ON s.advisor_id = u.id
+        WHERE s.id = #{id}
+          AND s.deleted = 0
+    </select>
+
+</mapper>

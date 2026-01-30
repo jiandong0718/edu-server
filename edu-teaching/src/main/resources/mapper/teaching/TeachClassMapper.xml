@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.teaching.mapper.TeachClassMapper">
+
+    <resultMap id="TeachClassResult" type="com.edu.teaching.domain.entity.TeachClass">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="code" column="code"/>
+        <result property="courseId" column="course_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="teacherId" column="teacher_id"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="assistantId" column="assistant_id"/>
+        <result property="classroomId" column="classroom_id"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="capacity" column="capacity"/>
+        <result property="currentCount" column="current_count"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectClassPage" resultMap="TeachClassResult">
+        SELECT c.*,
+               co.name as course_name,
+               t.name as teacher_name,
+               ca.name as campus_name
+        FROM tch_class c
+        LEFT JOIN tch_course co ON c.course_id = co.id
+        LEFT JOIN tch_teacher t ON c.teacher_id = t.id
+        LEFT JOIN sys_campus ca ON c.campus_id = ca.id
+        WHERE c.deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND c.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.courseId != null">
+            AND c.course_id = #{query.courseId}
+        </if>
+        <if test="query.teacherId != null">
+            AND c.teacher_id = #{query.teacherId}
+        </if>
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND c.status = #{query.status}
+        </if>
+        ORDER BY c.create_time DESC
+    </select>
+
+</mapper>
