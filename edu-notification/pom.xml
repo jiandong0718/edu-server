@@ -21,5 +21,11 @@
             <groupId>com.edu</groupId>
             <artifactId>edu-framework</artifactId>
         </dependency>
+
+        <!-- Validation API -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

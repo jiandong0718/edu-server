@@ -2,7 +2,7 @@ package com.edu.finance.domain.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * 合同打印DTO

@@ -27,6 +27,12 @@
             <artifactId>edu-student</artifactId>
         </dependency>
 
+        <!-- Validation API -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
         <!-- iText for PDF generation -->
         <dependency>
             <groupId>com.itextpdf</groupId>
