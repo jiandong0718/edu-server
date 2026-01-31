@@ -1,0 +1,159 @@
+# 在线支付配置示例
+# 将此配置添加到 application-dev.yml 或 application-prod.yml
+
+# ============================================
+# 支付配置
+# ============================================
+payment:
+  # 模拟支付配置（开发测试用）
+  mock:
+    enabled: true  # 开发环境启用，生产环境设置为 false
+
+  # 微信支付配置
+  wechat:
+    enabled: false  # 是否启用微信支付
+    app-id: wx1234567890abcdef  # 微信公众号/小程序 AppID
+    mch-id: 1234567890  # 商户号
+    api-key: your_api_key_32_characters_long  # API 密钥（V2）
+    api-v3-key: your_api_v3_key_32_characters  # API V3 密钥
+    serial-no: your_certificate_serial_number  # 商户证书序列号
+    private-key-path: classpath:cert/wechat/apiclient_key.pem  # 商户私钥路径
+    notify-url: https://your-domain.com/finance/online-payment/notify/wechat  # 支付回调通知 URL
+    api-url: https://api.mch.weixin.qq.com  # 微信支付 API 域名
+
+  # 支付宝配置
+  alipay:
+    enabled: false  # 是否启用支付宝支付
+    app-id: 2021001234567890  # 应用 ID
+    private-key: |  # 应用私钥（RSA2）
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+    alipay-public-key: |  # 支付宝公钥
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+    sign-type: RSA2  # 签名类型
+    charset: UTF-8  # 字符编码
+    notify-url: https://your-domain.com/finance/online-payment/notify/alipay  # 支付回调通知 URL
+    return-url: https://your-domain.com/payment/return  # 前端回跳 URL
+    gateway-url: https://openapi.alipay.com/gateway.do  # 支付宝网关地址
+    # 沙箱环境：https://openapi.alipaydev.com/gateway.do
+
+  # 银联支付配置
+  unionpay:
+    enabled: false  # 是否启用银联支付
+    mer-id: 123456789012345  # 商户号
+    cert-path: classpath:cert/unionpay/acp_test_sign.pfx  # 签名证书路径
+    cert-password: 000000  # 证书密码
+    cert-id: your_cert_serial_number  # 签名证书序列号
+    validate-cert-path: classpath:cert/unionpay/acp_test_verify_sign.cer  # 验签公钥证书
+    middle-cert-path: classpath:cert/unionpay/acp_test_middle.cer  # 中级证书
+    root-cert-path: classpath:cert/unionpay/acp_test_root.cer  # 根证书
+    notify-url: https://your-domain.com/finance/online-payment/notify/unionpay  # 支付回调通知 URL
+    return-url: https://your-domain.com/payment/return  # 前端回跳 URL
+    front-url: https://gateway.95516.com/gateway/api/frontTransReq.do  # 前台请求地址
+    back-url: https://gateway.95516.com/gateway/api/backTransReq.do  # 后台请求地址
+    single-query-url: https://gateway.95516.com/gateway/api/queryTrans.do  # 单笔查询地址
+    # 测试环境：https://gateway.test.95516.com
+
+# ============================================
+# 配置说明
+# ============================================
+
+# 1. 模拟支付（Mock Payment）
+#    - 用于开发和测试环境
+#    - 无需真实支付平台配置
+#    - 支持完整支付流程模拟
+#    - 生产环境必须设置 enabled: false
+
+# 2. 微信支付
+#    - 需要在微信商户平台申请商户号
+#    - 下载商户证书并配置私钥路径
+#    - 配置支付回调 URL 白名单
+#    - 支持场景：APP、H5、JSAPI、Native（扫码）
+
+# 3. 支付宝
+#    - 需要在支付宝开放平台创建应用
+#    - 生成应用私钥和公钥
+#    - 上传应用公钥到支付宝平台
+#    - 获取支付宝公钥
+#    - 配置支付回调 URL 白名单
+#    - 支持场景：APP、WAP、PAGE、Native（扫码）
+
+# 4. 银联支付
+#    - 需要申请银联商户号
+#    - 下载商户证书
+#    - 配置证书路径和密码
+#    - 配置支付回调 URL 白名单
+#    - 支持场景：PC、Mobile、QRCode
+
+# ============================================
+# 安全建议
+# ============================================
+
+# 1. 生产环境配置
+#    - 使用环境变量或配置中心管理敏感信息
+#    - 不要将密钥提交到代码仓库
+#    - 使用 HTTPS 协议
+#    - 配置域名白名单
+
+# 2. 证书管理
+#    - 证书文件放在安全目录
+#    - 定期更新证书
+#    - 备份证书文件
+
+# 3. 回调 URL
+#    - 必须是公网可访问的 HTTPS 地址
+#    - 在支付平台配置白名单
+#    - 验证回调签名
+
+# ============================================
+# 环境变量配置示例
+# ============================================
+
+# 使用环境变量替代配置文件中的敏感信息：
+# payment:
+#   wechat:
+#     enabled: ${WECHAT_PAY_ENABLED:false}
+#     app-id: ${WECHAT_APP_ID}
+#     mch-id: ${WECHAT_MCH_ID}
+#     api-key: ${WECHAT_API_KEY}
+#     api-v3-key: ${WECHAT_API_V3_KEY}
+#     serial-no: ${WECHAT_SERIAL_NO}
+#     private-key-path: ${WECHAT_PRIVATE_KEY_PATH}
+#     notify-url: ${WECHAT_NOTIFY_URL}
+
+# 然后在启动时设置环境变量：
+# export WECHAT_PAY_ENABLED=true
+# export WECHAT_APP_ID=wx1234567890abcdef
+# export WECHAT_MCH_ID=1234567890
+# ...
+
+# ============================================
+# 测试环境配置
+# ============================================
+
+# 开发测试环境建议配置：
+# payment:
+#   mock:
+#     enabled: true  # 启用模拟支付
+#   wechat:
+#     enabled: false  # 关闭真实支付
+#   alipay:
+#     enabled: false
+#   unionpay:
+#     enabled: false
+
+# ============================================
+# 生产环境配置
+# ============================================
+
+# 生产环境建议配置：
+# payment:
+#   mock:
+#     enabled: false  # 关闭模拟支付
+#   wechat:
+#     enabled: true  # 启用真实支付
+#     # ... 配置真实参数
+#   alipay:
+#     enabled: true
+#     # ... 配置真实参数
+#   unionpay:
+#     enabled: false  # 根据需要启用

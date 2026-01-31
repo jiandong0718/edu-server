@@ -81,6 +81,13 @@ public class OnlinePaymentController {
         return onlinePaymentService.handleNotification("unionpay", params);
     }
 
+    @Operation(summary = "模拟支付回调通知", description = "用于开发测试，模拟支付平台回调")
+    @PostMapping("/notify/mock")
+    public String mockNotify(HttpServletRequest request) {
+        Map<String, String> params = extractParams(request);
+        return onlinePaymentService.handleNotification("mock", params);
+    }
+
     /**
      * 提取请求参数
      */

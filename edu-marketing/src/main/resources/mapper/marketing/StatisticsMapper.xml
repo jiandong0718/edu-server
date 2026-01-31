@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.marketing.mapper.StatisticsMapper">
+
+    <resultMap id="ConversionFunnelResult" type="com.edu.marketing.domain.vo.ConversionFunnelVO">
+        <result property="newLeadCount" column="new_lead_count"/>
+        <result property="followingCount" column="following_count"/>
+        <result property="appointedCount" column="appointed_count"/>
+        <result property="trialedCount" column="trialed_count"/>
+        <result property="convertedCount" column="converted_count"/>
+        <result property="lostCount" column="lost_count"/>
+        <result property="appointmentRate" column="appointment_rate"/>
+        <result property="trialRate" column="trial_rate"/>
+        <result property="conversionRate" column="conversion_rate"/>
+        <result property="overallRate" column="overall_rate"/>
+    </resultMap>
+
+    <resultMap id="AdvisorPerformanceResult" type="com.edu.marketing.domain.vo.AdvisorPerformanceVO">
+        <result property="advisorId" column="advisor_id"/>
+        <result property="advisorName" column="advisor_name"/>
+        <result property="totalLeadCount" column="total_lead_count"/>
+        <result property="followUpCount" column="follow_up_count"/>
+        <result property="appointmentCount" column="appointment_count"/>
+        <result property="trialCount" column="trial_count"/>
+        <result property="conversionCount" column="conversion_count"/>
+        <result property="conversionAmount" column="conversion_amount"/>
+        <result property="conversionRate" column="conversion_rate"/>
+        <result property="avgFollowUpCount" column="avg_follow_up_count"/>
+    </resultMap>
+
+    <!-- 招生转化漏斗统计 -->
+    <select id="selectConversionFunnel" resultMap="ConversionFunnelResult">
+        SELECT
+            -- 新线索数量
+            COALESCE(SUM(CASE WHEN l.status = 'new' THEN 1 ELSE 0 END), 0) as new_lead_count,
+            -- 跟进中数量
+            COALESCE(SUM(CASE WHEN l.status = 'following' THEN 1 ELSE 0 END), 0) as following_count,
+            -- 已预约数量
+            COALESCE(SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END), 0) as appointed_count,
+            -- 已试听数量
+            COALESCE(SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END), 0) as trialed_count,
+            -- 已成交数量
+            COALESCE(SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END), 0) as converted_count,
+            -- 已流失数量
+            COALESCE(SUM(CASE WHEN l.status = 'lost' THEN 1 ELSE 0 END), 0) as lost_count,
+            -- 预约转化率 = 已预约数量 / (新线索 + 跟进中) * 100
+            CASE
+                WHEN (SUM(CASE WHEN l.status IN ('new', 'following') THEN 1 ELSE 0 END)) > 0
+                THEN ROUND(
+                    SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) * 100.0 /
+                    (SUM(CASE WHEN l.status IN ('new', 'following') THEN 1 ELSE 0 END) +
+                     SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END)),
+                    2
+                )
+                ELSE 0
+            END as appointment_rate,
+            -- 试听转化率 = 已试听数量 / 已预约数量 * 100
+            CASE
+                WHEN SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) > 0
+                THEN ROUND(
+                    SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) * 100.0 /
+                    (SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) +
+                     SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END)),
+                    2
+                )
+                ELSE 0
+            END as trial_rate,
+            -- 成交转化率 = 已成交数量 / 已试听数量 * 100
+            CASE
+                WHEN SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) > 0
+                THEN ROUND(
+                    SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 /
+                    (SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) +
+                     SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END)),
+                    2
+                )
+                ELSE 0
+            END as conversion_rate,
+            -- 整体转化率 = 已成交数量 / 总线索数量 * 100
+            CASE
+                WHEN COUNT(l.id) > 0
+                THEN ROUND(
+                    SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / COUNT(l.id),
+                    2
+                )
+                ELSE 0
+            END as overall_rate
+        FROM mkt_lead l
+        WHERE l.deleted = 0
+        <if test="query.campusId != null">
+            AND l.campus_id = #{query.campusId}
+        </if>
+        <if test="query.advisorId != null">
+            AND l.advisor_id = #{query.advisorId}
+        </if>
+        <if test="query.startTime != null">
+            AND l.create_time &gt;= #{query.startTime}
+        </if>
+        <if test="query.endTime != null">
+            AND l.create_time &lt;= #{query.endTime}
+        </if>
+    </select>
+
+    <!-- 顾问业绩统计 -->
+    <select id="selectAdvisorPerformanceList" resultMap="AdvisorPerformanceResult">
+        SELECT
+            u.id as advisor_id,
+            u.real_name as advisor_name,
+            -- 线索总数
+            COALESCE(COUNT(DISTINCT l.id), 0) as total_lead_count,
+            -- 跟进次数
+            COALESCE(COUNT(DISTINCT f.id), 0) as follow_up_count,
+            -- 预约数量（已预约状态的线索数）
+            COALESCE(SUM(CASE WHEN l.status IN ('appointed', 'trialed', 'converted') THEN 1 ELSE 0 END), 0) as appointment_count,
+            -- 试听数量（通过试听记录表统计）
+            COALESCE(COUNT(DISTINCT tl.id), 0) as trial_count,
+            -- 成交数量（已成交状态的线索数）
+            COALESCE(SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END), 0) as conversion_count,
+            -- 成交金额（通过合同表统计，关联学员手机号）
+            COALESCE(SUM(DISTINCT c.amount), 0) as conversion_amount,
+            -- 转化率 = 成交数量 / 线索总数 * 100
+            CASE
+                WHEN COUNT(DISTINCT l.id) > 0
+                THEN ROUND(
+                    SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / COUNT(DISTINCT l.id),
+                    2
+                )
+                ELSE 0
+            END as conversion_rate,
+            -- 平均跟进次数 = 跟进次数 / 线索总数
+            CASE
+                WHEN COUNT(DISTINCT l.id) > 0
+                THEN ROUND(COUNT(DISTINCT f.id) * 1.0 / COUNT(DISTINCT l.id), 2)
+                ELSE 0
+            END as avg_follow_up_count
+        FROM sys_user u
+        LEFT JOIN mkt_lead l ON u.id = l.advisor_id
+            AND l.deleted = 0
+            <if test="query.startTime != null">
+                AND l.create_time &gt;= #{query.startTime}
+            </if>
+            <if test="query.endTime != null">
+                AND l.create_time &lt;= #{query.endTime}
+            </if>
+            <if test="query.campusId != null">
+                AND l.campus_id = #{query.campusId}
+            </if>
+        LEFT JOIN mkt_follow_up f ON l.id = f.lead_id
+            AND f.deleted = 0
+            <if test="query.startTime != null">
+                AND f.create_time &gt;= #{query.startTime}
+            </if>
+            <if test="query.endTime != null">
+                AND f.create_time &lt;= #{query.endTime}
+            </if>
+        LEFT JOIN mkt_trial_lesson tl ON l.id = tl.lead_id
+            AND tl.deleted = 0
+            AND tl.status IN ('attended', 'converted')
+            <if test="query.startTime != null">
+                AND tl.create_time &gt;= #{query.startTime}
+            </if>
+            <if test="query.endTime != null">
+                AND tl.create_time &lt;= #{query.endTime}
+            </if>
+        LEFT JOIN stu_student s ON l.phone = s.phone
+            AND s.deleted = 0
+            AND s.advisor_id = u.id
+        LEFT JOIN fin_contract c ON s.id = c.student_id
+            AND c.deleted = 0
+            AND c.status IN ('signed', 'completed')
+            AND c.sales_id = u.id
+            <if test="query.startTime != null">
+                AND c.sign_date &gt;= DATE(#{query.startTime})
+            </if>
+            <if test="query.endTime != null">
+                AND c.sign_date &lt;= DATE(#{query.endTime})
+            </if>
+        WHERE u.deleted = 0
+            AND u.status = 1
+            AND EXISTS (
+                SELECT 1 FROM sys_user_role ur
+                INNER JOIN sys_role r ON ur.role_id = r.id
+                WHERE ur.user_id = u.id
+                  AND r.role_code = 'advisor'
+                  AND r.deleted = 0
+            )
+            <if test="query.advisorId != null">
+                AND u.id = #{query.advisorId}
+            </if>
+            <if test="query.campusId != null">
+                AND u.campus_id = #{query.campusId}
+            </if>
+        GROUP BY u.id, u.real_name
+        <choose>
+            <when test="query.orderBy != null and query.orderBy == 'totalLeadCount'">
+                ORDER BY total_lead_count
+            </when>
+            <when test="query.orderBy != null and query.orderBy == 'trialCount'">
+                ORDER BY trial_count
+            </when>
+            <when test="query.orderBy != null and query.orderBy == 'conversionCount'">
+                ORDER BY conversion_count
+            </when>
+            <when test="query.orderBy != null and query.orderBy == 'conversionRate'">
+                ORDER BY conversion_rate
+            </when>
+            <when test="query.orderBy != null and query.orderBy == 'conversionAmount'">
+                ORDER BY conversion_amount
+            </when>
+            <otherwise>
+                ORDER BY conversion_count
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="query.orderDirection != null and query.orderDirection == 'asc'">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+        <if test="query.limit != null and query.limit > 0">
+            LIMIT #{query.limit}
+        </if>
+    </select>
+
+</mapper>
