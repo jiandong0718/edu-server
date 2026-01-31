@@ -2,6 +2,7 @@ package com.edu.marketing.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.edu.marketing.domain.dto.LeadImportResultDTO;
 import com.edu.marketing.domain.entity.FollowUp;
 import com.edu.marketing.domain.entity.Lead;
 
@@ -61,6 +62,21 @@ public interface LeadService extends IService<Lead> {
      * 批量导入线索
      */
     boolean importFromExcel(byte[] fileData);
+
+    /**
+     * 批量导入线索（增强版）
+     *
+     * @param fileData Excel文件数据
+     * @return 导入结果
+     */
+    LeadImportResultDTO batchImportLeads(byte[] fileData);
+
+    /**
+     * 下载导入模板
+     *
+     * @return Excel模板数据
+     */
+    byte[] downloadImportTemplate();
 
     /**
      * 自动分配线索

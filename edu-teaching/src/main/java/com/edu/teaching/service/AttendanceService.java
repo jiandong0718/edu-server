@@ -2,6 +2,9 @@ package com.edu.teaching.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.edu.teaching.domain.dto.AttendanceSignInDTO;
+import com.edu.teaching.domain.dto.BatchAttendanceSignInDTO;
+import com.edu.teaching.domain.dto.BatchAttendanceWithStatusDTO;
 import com.edu.teaching.domain.entity.Attendance;
 
 import java.time.LocalDate;
@@ -34,9 +37,24 @@ public interface AttendanceService extends IService<Attendance> {
     boolean signIn(Long scheduleId, Long studentId, String status, String remark);
 
     /**
-     * 批量签到
+     * 单个签到（使用DTO）
+     */
+    boolean signIn(AttendanceSignInDTO dto);
+
+    /**
+     * 批量签到（统一状态）
      */
     boolean batchSignIn(Long scheduleId, List<Long> studentIds, String status);
+
+    /**
+     * 批量签到（使用DTO）
+     */
+    boolean batchSignIn(BatchAttendanceSignInDTO dto);
+
+    /**
+     * 批量签到（不同状态）
+     */
+    boolean batchSignInWithStatus(BatchAttendanceWithStatusDTO dto);
 
     /**
      * 更新考勤状态
@@ -57,4 +75,10 @@ public interface AttendanceService extends IService<Attendance> {
      * 统计班级出勤情况
      */
     Map<String, Object> getClassAttendanceStats(Long classId, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 自动判断迟到状态
+     * 根据签到时间和课程开始时间自动判断是否迟到
+     */
+    String determineAttendanceStatus(Long scheduleId);
 }

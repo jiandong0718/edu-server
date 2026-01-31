@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.teaching.mapper.ScheduleHistoryMapper">
+
+    <resultMap id="ScheduleHistoryResult" type="com.edu.teaching.domain.entity.ScheduleHistory">
+        <id property="id" column="id"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="operationType" column="operation_type"/>
+        <result property="oldScheduleDate" column="old_schedule_date"/>
+        <result property="newScheduleDate" column="new_schedule_date"/>
+        <result property="oldStartTime" column="old_start_time"/>
+        <result property="newStartTime" column="new_start_time"/>
+        <result property="oldEndTime" column="old_end_time"/>
+        <result property="newEndTime" column="new_end_time"/>
+        <result property="oldTeacherId" column="old_teacher_id"/>
+        <result property="newTeacherId" column="new_teacher_id"/>
+        <result property="oldClassroomId" column="old_classroom_id"/>
+        <result property="newClassroomId" column="new_classroom_id"/>
+        <result property="reason" column="reason"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createBy" column="create_by"/>
+    </resultMap>
+
+    <select id="selectHistoryByScheduleId" resultMap="ScheduleHistoryResult">
+        SELECT *
+        FROM tch_schedule_history
+        WHERE deleted = 0
+          AND schedule_id = #{scheduleId}
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

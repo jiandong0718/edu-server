@@ -3,6 +3,7 @@ package com.edu.system.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.framework.security.SecurityContextHolder;
 import com.edu.system.domain.entity.SysCampus;
 import com.edu.system.service.SysCampusService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +43,19 @@ public class SysCampusController {
     @Operation(summary = "获取所有校区列表")
     @GetMapping("/list")
     public R<List<SysCampus>> list() {
+        List<SysCampus> list = campusService.list(new LambdaQueryWrapper<SysCampus>()
+                .eq(SysCampus::getStatus, 1)
+                .orderByAsc(SysCampus::getSortOrder));
+        return R.ok(list);
+    }
+
+    @Operation(summary = "获取当前用户可访问的校区列表")
+    @GetMapping("/accessible")
+    public R<List<SysCampus>> getAccessibleCampuses() {
+        Long userId = SecurityContextHolder.getUserId();
+        // 获取所有启用的校区
+        // 注意：这里简化处理，返回所有启用的校区
+        // 如果需要更细粒度的权限控制，需要根据用户角色和权限过滤
         List<SysCampus> list = campusService.list(new LambdaQueryWrapper<SysCampus>()
                 .eq(SysCampus::getStatus, 1)
                 .orderByAsc(SysCampus::getSortOrder));

@@ -3,6 +3,7 @@ package com.edu.student.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.student.domain.dto.StudentImportResultDTO;
 import com.edu.student.domain.entity.Student;
 import com.edu.student.domain.entity.StudentContact;
 import com.edu.student.service.StudentService;
@@ -127,5 +128,26 @@ public class StudentController {
     public R<Boolean> importData(@RequestParam("file") MultipartFile file) throws IOException {
         byte[] fileData = file.getBytes();
         return R.ok(studentService.importFromExcel(fileData));
+    }
+
+    @Operation(summary = "批量导入学员数据（增强版）")
+    @PostMapping("/batch-import")
+    public R<StudentImportResultDTO> batchImport(@RequestParam("file") MultipartFile file) throws IOException {
+        byte[] fileData = file.getBytes();
+        StudentImportResultDTO result = studentService.batchImportStudents(fileData);
+        return R.ok(result);
+    }
+
+    @Operation(summary = "下载导入模板")
+    @GetMapping("/import-template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        byte[] data = studentService.downloadImportTemplate();
+        String fileName = "student_import_template.xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(data);
     }
 }

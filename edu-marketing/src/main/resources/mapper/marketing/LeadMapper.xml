@@ -11,6 +11,8 @@
         <result property="age" column="age"/>
         <result property="source" column="source"/>
         <result property="sourceDetail" column="source_detail"/>
+        <result property="school" column="school"/>
+        <result property="grade" column="grade"/>
         <result property="intentCourseId" column="intent_course_id"/>
         <result property="intentCourseName" column="intent_course_name"/>
         <result property="intentLevel" column="intent_level"/>
@@ -60,6 +62,27 @@
             AND l.intent_level = #{query.intentLevel}
         </if>
         ORDER BY l.create_time DESC
+    </select>
+
+    <select id="selectAdvisorLeadCounts" resultType="map">
+        SELECT
+            u.id as advisorId,
+            u.real_name as advisorName,
+            COALESCE(COUNT(l.id), 0) as leadCount
+        FROM sys_user u
+        LEFT JOIN mkt_lead l ON u.id = l.advisor_id AND l.deleted = 0 AND l.status IN ('new', 'following')
+        WHERE u.campus_id = #{campusId}
+          AND u.status = 1
+          AND u.deleted = 0
+          AND EXISTS (
+              SELECT 1 FROM sys_user_role ur
+              INNER JOIN sys_role r ON ur.role_id = r.id
+              WHERE ur.user_id = u.id
+                AND r.role_code = 'advisor'
+                AND r.deleted = 0
+          )
+        GROUP BY u.id, u.real_name
+        ORDER BY leadCount ASC
     </select>
 
 </mapper>

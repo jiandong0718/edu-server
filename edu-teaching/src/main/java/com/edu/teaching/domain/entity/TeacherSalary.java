@@ -13,7 +13,7 @@ import java.time.LocalDate;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("tch_teacher_salary")
+@TableName("tch_teacher_salary_config")
 public class TeacherSalary extends BaseEntity {
 
     /**
@@ -27,9 +27,14 @@ public class TeacherSalary extends BaseEntity {
     private Long courseId;
 
     /**
-     * 课酬类型：1-按课时，2-按天，3-按月
+     * 班级类型：one_to_one-一对一，small_class-小班课，large_class-大班课
      */
-    private Integer salaryType;
+    private String classType;
+
+    /**
+     * 课酬类型：per_hour-按课时，per_class-按课次，fixed-固定
+     */
+    private String salaryType;
 
     /**
      * 课酬金额

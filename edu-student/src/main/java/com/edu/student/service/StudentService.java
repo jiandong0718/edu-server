@@ -2,6 +2,7 @@ package com.edu.student.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.edu.student.domain.dto.StudentImportResultDTO;
 import com.edu.student.domain.entity.Student;
 import com.edu.student.domain.entity.StudentContact;
 
@@ -81,4 +82,19 @@ public interface StudentService extends IService<Student> {
      * 批量导入学员数据
      */
     boolean importFromExcel(byte[] fileData);
+
+    /**
+     * 批量导入学员数据（增强版）
+     *
+     * @param fileData Excel文件数据
+     * @return 导入结果
+     */
+    StudentImportResultDTO batchImportStudents(byte[] fileData);
+
+    /**
+     * 下载导入模板
+     *
+     * @return Excel模板数据
+     */
+    byte[] downloadImportTemplate();
 }

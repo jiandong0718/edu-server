@@ -27,6 +27,11 @@ public class Attendance extends BaseEntity {
     private Long studentId;
 
     /**
+     * 班级ID
+     */
+    private Long classId;
+
+    /**
      * 状态：present-出勤，absent-缺勤，late-迟到，leave-请假
      */
     private String status;

@@ -2,10 +2,19 @@ package com.edu.teaching.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.teaching.domain.dto.BatchClassGraduationDTO;
+import com.edu.teaching.domain.dto.BatchClassPromotionDTO;
+import com.edu.teaching.domain.dto.ClassGraduationDTO;
+import com.edu.teaching.domain.dto.ClassPromotionDTO;
 import com.edu.teaching.domain.entity.TeachClass;
+import com.edu.teaching.domain.vo.BatchClassGraduationResultVO;
+import com.edu.teaching.domain.vo.BatchClassPromotionResultVO;
+import com.edu.teaching.domain.vo.ClassGraduationResultVO;
+import com.edu.teaching.domain.vo.ClassPromotionResultVO;
 import com.edu.teaching.service.TeachClassService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -87,5 +96,29 @@ public class TeachClassController {
     @DeleteMapping("/{classId}/students/{studentId}")
     public R<Boolean> removeStudent(@PathVariable Long classId, @PathVariable Long studentId) {
         return R.ok(classService.removeStudent(classId, studentId));
+    }
+
+    @Operation(summary = "班级升班")
+    @PostMapping("/promote")
+    public R<ClassPromotionResultVO> promoteClass(@Valid @RequestBody ClassPromotionDTO dto) {
+        return R.ok(classService.promoteClass(dto));
+    }
+
+    @Operation(summary = "批量班级升班")
+    @PostMapping("/promote/batch")
+    public R<BatchClassPromotionResultVO> batchPromoteClass(@Valid @RequestBody BatchClassPromotionDTO dto) {
+        return R.ok(classService.batchPromoteClass(dto));
+    }
+
+    @Operation(summary = "班级结业")
+    @PostMapping("/graduate")
+    public R<ClassGraduationResultVO> graduateClass(@Valid @RequestBody ClassGraduationDTO dto) {
+        return R.ok(classService.graduateClass(dto));
+    }
+
+    @Operation(summary = "批量班级结业")
+    @PostMapping("/graduate/batch")
+    public R<BatchClassGraduationResultVO> batchGraduateClass(@Valid @RequestBody BatchClassGraduationDTO dto) {
+        return R.ok(classService.batchGraduateClass(dto));
     }
 }

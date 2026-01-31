@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ClassHourAccountMapper">
+
+    <resultMap id="StatisticsResult" type="com.edu.finance.domain.vo.ClassHourStatisticsVO">
+        <result property="dimension" column="dimension"/>
+        <result property="dimensionId" column="dimension_id"/>
+        <result property="dimensionName" column="dimension_name"/>
+        <result property="accountCount" column="account_count"/>
+        <result property="totalHours" column="total_hours"/>
+        <result property="usedHours" column="used_hours"/>
+        <result property="remainingHours" column="remaining_hours"/>
+        <result property="giftHours" column="gift_hours"/>
+        <result property="warningAccountCount" column="warning_account_count"/>
+    </resultMap>
+
+    <!-- 统计学员课时使用情况 -->
+    <select id="statisticsByStudent" resultMap="StatisticsResult">
+        SELECT
+            'student' as dimension,
+            #{studentId} as dimension_id,
+            s.name as dimension_name,
+            COUNT(a.id) as account_count,
+            COALESCE(SUM(a.total_hours), 0) as total_hours,
+            COALESCE(SUM(a.used_hours), 0) as used_hours,
+            COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
+            COALESCE(SUM(a.gift_hours), 0) as gift_hours,
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+        FROM fin_class_hour_account a
+        LEFT JOIN stu_student s ON a.student_id = s.id
+        WHERE a.deleted = 0
+          AND a.student_id = #{studentId}
+        GROUP BY a.student_id, s.name
+    </select>
+
+    <!-- 统计课程消课情况 -->
+    <select id="statisticsByCourse" resultMap="StatisticsResult">
+        SELECT
+            'course' as dimension,
+            #{courseId} as dimension_id,
+            c.name as dimension_name,
+            COUNT(a.id) as account_count,
+            COALESCE(SUM(a.total_hours), 0) as total_hours,
+            COALESCE(SUM(a.used_hours), 0) as used_hours,
+            COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
+            COALESCE(SUM(a.gift_hours), 0) as gift_hours,
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+        FROM fin_class_hour_account a
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        WHERE a.deleted = 0
+          AND a.course_id = #{courseId}
+        GROUP BY a.course_id, c.name
+    </select>
+
+    <!-- 统计校区课时数据 -->
+    <select id="statisticsByCampus" resultMap="StatisticsResult">
+        SELECT
+            'campus' as dimension,
+            #{campusId} as dimension_id,
+            ca.name as dimension_name,
+            COUNT(a.id) as account_count,
+            COALESCE(SUM(a.total_hours), 0) as total_hours,
+            COALESCE(SUM(a.used_hours), 0) as used_hours,
+            COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
+            COALESCE(SUM(a.gift_hours), 0) as gift_hours,
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+        FROM fin_class_hour_account a
+        LEFT JOIN sys_campus ca ON a.campus_id = ca.id
+        WHERE a.deleted = 0
+          AND a.campus_id = #{campusId}
+        GROUP BY a.campus_id, ca.name
+    </select>
+
+</mapper>

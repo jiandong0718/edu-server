@@ -45,12 +45,45 @@
 
     <!-- ========== 财务统计 ========== -->
 
+    <select id="sumIncomeToday" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM fin_payment
+        WHERE deleted = 0
+          AND status = 'paid'
+          AND DATE(pay_time) = CURDATE()
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="sumIncomeThisWeek" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM fin_payment
+        WHERE deleted = 0
+          AND status = 'paid'
+          AND YEARWEEK(pay_time, 1) = YEARWEEK(NOW(), 1)
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
     <select id="sumIncomeThisMonth" resultType="java.math.BigDecimal">
         SELECT COALESCE(SUM(amount), 0)
         FROM fin_payment
         WHERE deleted = 0
           AND status = 'paid'
           AND DATE_FORMAT(pay_time, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="sumIncomeThisYear" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM fin_payment
+        WHERE deleted = 0
+          AND status = 'paid'
+          AND YEAR(pay_time) = YEAR(NOW())
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -78,6 +111,18 @@
         </if>
     </select>
 
+    <select id="sumOverdueAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(paid_amount - received_amount), 0)
+        FROM fin_contract
+        WHERE deleted = 0
+          AND status IN ('pending', 'signed')
+          AND paid_amount > received_amount
+          AND expire_date &lt; CURDATE()
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
     <select id="countContracts" resultType="int">
         SELECT COUNT(*)
         FROM fin_contract
@@ -85,6 +130,19 @@
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
+    </select>
+
+    <select id="getPaymentMethodDistribution" resultType="map">
+        SELECT payment_method as name, COUNT(*) as count, COALESCE(SUM(amount), 0) as amount
+        FROM fin_payment
+        WHERE deleted = 0
+          AND status = 'paid'
+          AND DATE_FORMAT(pay_time, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        GROUP BY payment_method
+        ORDER BY amount DESC
     </select>
 
     <select id="getIncomeTrend" resultType="map">
@@ -147,6 +205,25 @@
         SELECT COUNT(*)
         FROM tch_teacher
         WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="countTeachersByStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM tch_teacher
+        WHERE deleted = 0
+          AND status = #{status}
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="countCourses" resultType="int">
+        SELECT COUNT(*)
+        FROM tch_course
+        WHERE deleted = 0
           AND status = 'active'
         <if test="campusId != null">
             AND campus_id = #{campusId}
@@ -179,6 +256,16 @@
         </if>
     </select>
 
+    <select id="countLeadsByStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_lead
+        WHERE deleted = 0
+          AND status = #{status}
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
     <select id="countNewLeadsThisMonth" resultType="int">
         SELECT COUNT(*)
         FROM mkt_lead
@@ -200,6 +287,35 @@
         </if>
     </select>
 
+    <select id="countTrials" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="countTrialsThisMonth" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+          AND DATE_FORMAT(trial_date, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="countTrialConverted" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+          AND status = 'converted'
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
     <select id="getLeadSourceDistribution" resultType="map">
         SELECT source as name, COUNT(*) as value
         FROM mkt_lead
@@ -208,6 +324,32 @@
             AND campus_id = #{campusId}
         </if>
         GROUP BY source
+        ORDER BY value DESC
+    </select>
+
+    <select id="getLeadTrend" resultType="map">
+        SELECT DATE(create_time) as date, COUNT(*) as count
+        FROM mkt_lead
+        WHERE deleted = 0
+          AND create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        GROUP BY DATE(create_time)
+        ORDER BY date
+    </select>
+
+    <select id="getConversionTrend" resultType="map">
+        SELECT DATE(update_time) as date, COUNT(*) as count
+        FROM mkt_lead
+        WHERE deleted = 0
+          AND status = 'converted'
+          AND update_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        GROUP BY DATE(update_time)
+        ORDER BY date
     </select>
 
 </mapper>

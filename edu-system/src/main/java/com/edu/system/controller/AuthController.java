@@ -3,11 +3,15 @@ package com.edu.system.controller;
 import cn.hutool.crypto.digest.BCrypt;
 import com.edu.common.core.R;
 import com.edu.common.exception.BusinessException;
+import com.edu.framework.annotation.OperationLog;
 import com.edu.framework.security.JwtTokenUtil;
 import com.edu.framework.security.LoginUser;
 import com.edu.framework.security.SecurityContextHolder;
+import com.edu.system.domain.entity.SysCampus;
 import com.edu.system.domain.entity.SysMenu;
 import com.edu.system.domain.entity.SysUser;
+import com.edu.system.domain.vo.CampusSwitchVO;
+import com.edu.system.service.SysCampusService;
 import com.edu.system.service.SysConfigService;
 import com.edu.system.service.SysLoginLogService;
 import com.edu.system.service.SysMenuService;
@@ -38,6 +42,7 @@ public class AuthController {
     private final JwtTokenUtil jwtTokenUtil;
     private final SysConfigService configService;
     private final SysLoginLogService loginLogService;
+    private final SysCampusService campusService;
 
     @Operation(summary = "登录")
     @PostMapping("/login")
@@ -228,27 +233,50 @@ public class AuthController {
     }
 
     @Operation(summary = "切换校区")
+    @OperationLog(module = "认证管理", type = OperationLog.OperationType.UPDATE, description = "切换校区")
     @PostMapping("/switch-campus")
-    public R<Boolean> switchCampus(@RequestBody SwitchCampusRequest request) {
+    public R<CampusSwitchVO> switchCampus(@RequestBody SwitchCampusRequest request) {
         LoginUser loginUser = SecurityContextHolder.getLoginUser();
         if (loginUser == null) {
             throw new BusinessException("未登录");
         }
 
-        // 更新用户的校区信息
+        // 验证校区ID是否为空
+        if (request.getCampusId() == null) {
+            throw new BusinessException("校区ID不能为空");
+        }
+
+        // 验证校区是否存在且启用
+        SysCampus campus = campusService.getActiveCampus(request.getCampusId());
+
+        // 验证用户是否有权限访问该校区
+        if (!campusService.validateUserCampusAccess(loginUser.getUserId(), request.getCampusId())) {
+            throw new BusinessException("您没有权限访问该校区");
+        }
+
+        // 更新用户的当前校区信息（可选：如果需要持久化用户的默认校区）
         SysUser user = new SysUser();
         user.setId(loginUser.getUserId());
         user.setCampusId(request.getCampusId());
-        boolean result = userService.updateById(user);
+        userService.updateById(user);
 
-        if (result) {
-            // 更新当前登录用户的校区信息
-            loginUser.setCampusId(request.getCampusId());
-            loginUser.setCampusName(request.getCampusName());
-            // 重新生成 Token
-            String token = jwtTokenUtil.createToken(loginUser);
-            // 这里可以返回新的 token，或者让前端重新获取用户信息
-        }
+        // 更新当前登录用户的校区信息
+        loginUser.setCampusId(campus.getId());
+        loginUser.setCampusName(campus.getName());
+
+        // 更新 Redis 中的用户信息（刷新 Token）
+        jwtTokenUtil.refreshToken(loginUser);
+
+        // 更新线程上下文中的校区信息
+        com.edu.framework.mybatis.CampusContextHolder.setCampusId(campus.getId());
+
+        // 构建响应
+        CampusSwitchVO result = CampusSwitchVO.builder()
+                .campusId(campus.getId())
+                .campusName(campus.getName())
+                .campusCode(campus.getCode())
+                .message("切换校区成功")
+                .build();
 
         return R.ok(result);
     }
@@ -269,6 +297,5 @@ public class AuthController {
     @Data
     public static class SwitchCampusRequest {
         private Long campusId;
-        private String campusName;
     }
 }

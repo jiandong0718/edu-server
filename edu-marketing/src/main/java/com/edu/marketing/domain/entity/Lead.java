@@ -52,6 +52,16 @@ public class Lead extends BaseEntity {
     private String sourceDetail;
 
     /**
+     * 就读学校
+     */
+    private String school;
+
+    /**
+     * 年级
+     */
+    private String grade;
+
+    /**
      * 意向课程ID
      */
     private Long intentCourseId;

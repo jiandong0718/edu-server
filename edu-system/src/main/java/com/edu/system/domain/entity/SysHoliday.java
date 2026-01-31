@@ -21,6 +21,11 @@ public class SysHoliday extends BaseEntity {
     private String name;
 
     /**
+     * 节假日类型：1-法定节假日，2-调休，3-公司假期
+     */
+    private Integer type;
+
+    /**
      * 开始日期
      */
     private LocalDate startDate;
@@ -31,9 +36,14 @@ public class SysHoliday extends BaseEntity {
     private LocalDate endDate;
 
     /**
-     * 节假日类型：1-法定节假日，2-调休，3-公司假期
+     * 描述
      */
-    private Integer type;
+    private String description;
+
+    /**
+     * 校区ID（NULL表示全局）
+     */
+    private Long campusId;
 
     /**
      * 是否工作日：0-否（休息），1-是（调休上班）

@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.teaching.mapper.TeacherAttendanceMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="TeacherAttendanceResultMap" type="com.edu.teaching.domain.entity.TeacherAttendance">
+        <id property="id" column="id"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="teacherId" column="teacher_id"/>
+        <result property="classId" column="class_id"/>
+        <result property="signInTime" column="sign_in_time"/>
+        <result property="signOutTime" column="sign_out_time"/>
+        <result property="status" column="status"/>
+        <result property="isLate" column="is_late"/>
+        <result property="isEarlyLeave" column="is_early_leave"/>
+        <result property="lateMinutes" column="late_minutes"/>
+        <result property="earlyLeaveMinutes" column="early_leave_minutes"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="deleted" column="deleted"/>
+        <!-- 关联字段 -->
+        <result property="teacherName" column="teacher_name"/>
+        <result property="teacherNo" column="teacher_no"/>
+        <result property="courseName" column="course_name"/>
+        <result property="className" column="class_name"/>
+        <result property="scheduleDate" column="schedule_date"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+    </resultMap>
+
+    <!-- 分页查询教师考勤列表 -->
+    <select id="selectTeacherAttendancePage" resultMap="TeacherAttendanceResultMap">
+        SELECT
+            ta.*,
+            t.name AS teacher_name,
+            t.teacher_no,
+            c.name AS course_name,
+            tc.name AS class_name,
+            s.schedule_date,
+            s.start_time,
+            s.end_time
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_teacher t ON ta.teacher_id = t.id
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        LEFT JOIN tch_course c ON s.course_id = c.id
+        LEFT JOIN tch_class tc ON ta.class_id = tc.id
+        WHERE ta.deleted = 0
+        <if test="query.scheduleId != null">
+            AND ta.schedule_id = #{query.scheduleId}
+        </if>
+        <if test="query.teacherId != null">
+            AND ta.teacher_id = #{query.teacherId}
+        </if>
+        <if test="query.classId != null">
+            AND ta.class_id = #{query.classId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND ta.status = #{query.status}
+        </if>
+        <if test="query.isLate != null">
+            AND ta.is_late = #{query.isLate}
+        </if>
+        <if test="query.isEarlyLeave != null">
+            AND ta.is_early_leave = #{query.isEarlyLeave}
+        </if>
+        ORDER BY ta.create_time DESC
+    </select>
+
+    <!-- 根据排课ID获取教师考勤 -->
+    <select id="selectByScheduleId" resultMap="TeacherAttendanceResultMap">
+        SELECT
+            ta.*,
+            t.name AS teacher_name,
+            t.teacher_no,
+            c.name AS course_name,
+            tc.name AS class_name,
+            s.schedule_date,
+            s.start_time,
+            s.end_time
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_teacher t ON ta.teacher_id = t.id
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        LEFT JOIN tch_course c ON s.course_id = c.id
+        LEFT JOIN tch_class tc ON ta.class_id = tc.id
+        WHERE ta.deleted = 0
+          AND ta.schedule_id = #{scheduleId}
+    </select>
+
+    <!-- 根据教师ID查询考勤记录 -->
+    <select id="selectByTeacherId" resultMap="TeacherAttendanceResultMap">
+        SELECT
+            ta.*,
+            t.name AS teacher_name,
+            t.teacher_no,
+            c.name AS course_name,
+            tc.name AS class_name,
+            s.schedule_date,
+            s.start_time,
+            s.end_time
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_teacher t ON ta.teacher_id = t.id
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        LEFT JOIN tch_course c ON s.course_id = c.id
+        LEFT JOIN tch_class tc ON ta.class_id = tc.id
+        WHERE ta.deleted = 0
+          AND ta.teacher_id = #{teacherId}
+        <if test="startDate != null">
+            AND s.schedule_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND s.schedule_date &lt;= #{endDate}
+        </if>
+        ORDER BY s.schedule_date DESC, s.start_time DESC
+    </select>
+
+    <!-- 查询教师考勤统计数据 -->
+    <select id="selectTeacherAttendanceStats" resultMap="TeacherAttendanceResultMap">
+        SELECT
+            ta.*,
+            s.schedule_date
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        WHERE ta.deleted = 0
+        <if test="teacherId != null">
+            AND ta.teacher_id = #{teacherId}
+        </if>
+        <if test="classId != null">
+            AND ta.class_id = #{classId}
+        </if>
+        <if test="startDate != null">
+            AND s.schedule_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND s.schedule_date &lt;= #{endDate}
+        </if>
+        ORDER BY s.schedule_date DESC
+    </select>
+
+    <!-- 根据排课ID和教师ID查询考勤记录 -->
+    <select id="selectByScheduleAndTeacher" resultMap="TeacherAttendanceResultMap">
+        SELECT
+            ta.*,
+            t.name AS teacher_name,
+            t.teacher_no,
+            c.name AS course_name,
+            tc.name AS class_name,
+            s.schedule_date,
+            s.start_time,
+            s.end_time
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_teacher t ON ta.teacher_id = t.id
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        LEFT JOIN tch_course c ON s.course_id = c.id
+        LEFT JOIN tch_class tc ON ta.class_id = tc.id
+        WHERE ta.deleted = 0
+          AND ta.schedule_id = #{scheduleId}
+          AND ta.teacher_id = #{teacherId}
+    </select>
+
+    <!-- 统计教师考勤情况（按日统计） -->
+    <select id="selectDailyStats" resultType="map">
+        SELECT
+            s.schedule_date AS date,
+            COUNT(*) AS totalCount,
+            SUM(CASE WHEN ta.status = 'present' THEN 1 ELSE 0 END) AS presentCount,
+            SUM(CASE WHEN ta.status = 'absent' THEN 1 ELSE 0 END) AS absentCount,
+            SUM(CASE WHEN ta.status = 'late' THEN 1 ELSE 0 END) AS lateCount,
+            SUM(CASE WHEN ta.status = 'early_leave' THEN 1 ELSE 0 END) AS earlyLeaveCount,
+            SUM(CASE WHEN ta.status = 'leave' THEN 1 ELSE 0 END) AS leaveCount,
+            SUM(CASE WHEN ta.is_late = 1 THEN ta.late_minutes ELSE 0 END) AS totalLateMinutes,
+            SUM(CASE WHEN ta.is_early_leave = 1 THEN ta.early_leave_minutes ELSE 0 END) AS totalEarlyLeaveMinutes
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        WHERE ta.deleted = 0
+        <if test="teacherId != null">
+            AND ta.teacher_id = #{teacherId}
+        </if>
+        <if test="startDate != null">
+            AND s.schedule_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND s.schedule_date &lt;= #{endDate}
+        </if>
+        GROUP BY s.schedule_date
+        ORDER BY s.schedule_date DESC
+    </select>
+
+    <!-- 统计教师考勤情况（按周统计） -->
+    <select id="selectWeeklyStats" resultType="map">
+        SELECT
+            YEARWEEK(s.schedule_date, 1) AS weekKey,
+            DATE_FORMAT(MIN(s.schedule_date), '%Y-%m-%d') AS weekStart,
+            DATE_FORMAT(MAX(s.schedule_date), '%Y-%m-%d') AS weekEnd,
+            COUNT(*) AS totalCount,
+            SUM(CASE WHEN ta.status = 'present' THEN 1 ELSE 0 END) AS presentCount,
+            SUM(CASE WHEN ta.status = 'absent' THEN 1 ELSE 0 END) AS absentCount,
+            SUM(CASE WHEN ta.status = 'late' THEN 1 ELSE 0 END) AS lateCount,
+            SUM(CASE WHEN ta.status = 'early_leave' THEN 1 ELSE 0 END) AS earlyLeaveCount,
+            SUM(CASE WHEN ta.status = 'leave' THEN 1 ELSE 0 END) AS leaveCount,
+            SUM(CASE WHEN ta.is_late = 1 THEN ta.late_minutes ELSE 0 END) AS totalLateMinutes,
+            SUM(CASE WHEN ta.is_early_leave = 1 THEN ta.early_leave_minutes ELSE 0 END) AS totalEarlyLeaveMinutes
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        WHERE ta.deleted = 0
+        <if test="teacherId != null">
+            AND ta.teacher_id = #{teacherId}
+        </if>
+        <if test="startDate != null">
+            AND s.schedule_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND s.schedule_date &lt;= #{endDate}
+        </if>
+        GROUP BY YEARWEEK(s.schedule_date, 1)
+        ORDER BY weekKey DESC
+    </select>
+
+    <!-- 统计教师考勤情况（按月统计） -->
+    <select id="selectMonthlyStats" resultType="map">
+        SELECT
+            DATE_FORMAT(s.schedule_date, '%Y-%m') AS month,
+            COUNT(*) AS totalCount,
+            SUM(CASE WHEN ta.status = 'present' THEN 1 ELSE 0 END) AS presentCount,
+            SUM(CASE WHEN ta.status = 'absent' THEN 1 ELSE 0 END) AS absentCount,
+            SUM(CASE WHEN ta.status = 'late' THEN 1 ELSE 0 END) AS lateCount,
+            SUM(CASE WHEN ta.status = 'early_leave' THEN 1 ELSE 0 END) AS earlyLeaveCount,
+            SUM(CASE WHEN ta.status = 'leave' THEN 1 ELSE 0 END) AS leaveCount,
+            SUM(CASE WHEN ta.is_late = 1 THEN ta.late_minutes ELSE 0 END) AS totalLateMinutes,
+            SUM(CASE WHEN ta.is_early_leave = 1 THEN ta.early_leave_minutes ELSE 0 END) AS totalEarlyLeaveMinutes
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        WHERE ta.deleted = 0
+        <if test="teacherId != null">
+            AND ta.teacher_id = #{teacherId}
+        </if>
+        <if test="startDate != null">
+            AND s.schedule_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND s.schedule_date &lt;= #{endDate}
+        </if>
+        GROUP BY DATE_FORMAT(s.schedule_date, '%Y-%m')
+        ORDER BY month DESC
+    </select>
+
+    <!-- 统计教师考勤汇总数据 -->
+    <select id="selectAttendanceSummary" resultType="map">
+        SELECT
+            COUNT(*) AS totalCount,
+            SUM(CASE WHEN ta.status = 'present' THEN 1 ELSE 0 END) AS presentCount,
+            SUM(CASE WHEN ta.status = 'absent' THEN 1 ELSE 0 END) AS absentCount,
+            SUM(CASE WHEN ta.status = 'late' THEN 1 ELSE 0 END) AS lateCount,
+            SUM(CASE WHEN ta.status = 'early_leave' THEN 1 ELSE 0 END) AS earlyLeaveCount,
+            SUM(CASE WHEN ta.status = 'leave' THEN 1 ELSE 0 END) AS leaveCount,
+            SUM(CASE WHEN ta.is_late = 1 THEN ta.late_minutes ELSE 0 END) AS totalLateMinutes,
+            SUM(CASE WHEN ta.is_early_leave = 1 THEN ta.early_leave_minutes ELSE 0 END) AS totalEarlyLeaveMinutes
+        FROM tch_teacher_attendance ta
+        LEFT JOIN tch_schedule s ON ta.schedule_id = s.id
+        WHERE ta.deleted = 0
+        <if test="teacherId != null">
+            AND ta.teacher_id = #{teacherId}
+        </if>
+        <if test="startDate != null">
+            AND s.schedule_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND s.schedule_date &lt;= #{endDate}
+        </if>
+    </select>
+
+</mapper>

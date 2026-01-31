@@ -1,10 +1,17 @@
 package com.edu.teaching.controller;
 
 import com.edu.common.core.R;
+import com.edu.teaching.domain.dto.BatchScheduleDTO;
+import com.edu.teaching.domain.dto.CancelScheduleDTO;
+import com.edu.teaching.domain.dto.ScheduleConflictCheckDTO;
+import com.edu.teaching.domain.dto.SubstituteTeacherDTO;
 import com.edu.teaching.domain.entity.Schedule;
+import com.edu.teaching.domain.vo.BatchScheduleResultVO;
+import com.edu.teaching.domain.vo.ScheduleConflictVO;
 import com.edu.teaching.service.ScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -49,7 +56,7 @@ public class ScheduleController {
         return R.ok(scheduleService.createSchedule(schedule));
     }
 
-    @Operation(summary = "批量排课")
+    @Operation(summary = "批量排课（简单版本）")
     @PostMapping("/batch")
     public R<Boolean> batchCreate(@RequestBody BatchScheduleRequest request) {
         return R.ok(scheduleService.batchCreateSchedule(
@@ -60,6 +67,12 @@ public class ScheduleController {
                 request.getStartTime(),
                 request.getEndTime()
         ));
+    }
+
+    @Operation(summary = "批量排课（增强版本）", description = "支持按规则自动生成排课计划，支持跳过节假日、设置总课次等")
+    @PostMapping("/batch-enhanced")
+    public R<BatchScheduleResultVO> batchCreateEnhanced(@Valid @RequestBody BatchScheduleDTO batchScheduleDTO) {
+        return R.ok(scheduleService.batchCreateScheduleEnhanced(batchScheduleDTO));
     }
 
     @Operation(summary = "调课")
@@ -73,16 +86,45 @@ public class ScheduleController {
         return R.ok(scheduleService.reschedule(id, newDate, newStartTime, newEndTime, newClassroomId));
     }
 
-    @Operation(summary = "代课")
+    @Operation(summary = "代课（简单版本）", description = "仅更换教师，保留向后兼容")
     @PutMapping("/{id}/substitute")
     public R<Boolean> substitute(@PathVariable Long id, @RequestParam Long newTeacherId) {
         return R.ok(scheduleService.substitute(id, newTeacherId));
     }
 
-    @Operation(summary = "取消课程")
+    @Operation(summary = "代课（增强版本）", description = "支持代课原因、备注和通知功能")
+    @PostMapping("/substitute")
+    public R<Boolean> substituteTeacher(@Valid @RequestBody SubstituteTeacherDTO dto) {
+        return R.ok(scheduleService.substituteTeacher(dto));
+    }
+
+    @Operation(summary = "取消课程（简单版本）", description = "仅更新状态，保留向后兼容")
     @PutMapping("/{id}/cancel")
     public R<Boolean> cancel(@PathVariable Long id) {
         return R.ok(scheduleService.cancelSchedule(id));
+    }
+
+    @Operation(summary = "停课（增强版本）", description = "支持停课原因、补课安排和通知功能")
+    @PostMapping("/cancel")
+    public R<Boolean> cancelScheduleWithDetails(@Valid @RequestBody CancelScheduleDTO dto) {
+        return R.ok(scheduleService.cancelScheduleWithDetails(dto));
+    }
+
+    @Operation(summary = "检查教师是否可用")
+    @GetMapping("/check-teacher-available")
+    public R<Boolean> checkTeacherAvailable(
+            @RequestParam Long teacherId,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate scheduleDate,
+            @RequestParam @DateTimeFormat(pattern = "HH:mm") LocalTime startTime,
+            @RequestParam @DateTimeFormat(pattern = "HH:mm") LocalTime endTime,
+            @RequestParam(required = false) Long excludeScheduleId) {
+        return R.ok(scheduleService.isTeacherAvailable(teacherId, scheduleDate, startTime, endTime, excludeScheduleId));
+    }
+
+    @Operation(summary = "检查排课冲突（详细版本）", description = "检查教师、教室、学员时间冲突，以及教师可用时间和教室状态")
+    @PostMapping("/check-conflict")
+    public R<ScheduleConflictVO> checkConflict(@Valid @RequestBody ScheduleConflictCheckDTO checkDTO) {
+        return R.ok(scheduleService.checkConflictDetail(checkDTO));
     }
 
     @Data

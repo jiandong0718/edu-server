@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ContractItemMapper">
+
+    <!-- 根据合同ID查询明细列表 -->
+    <select id="selectByContractId" resultType="com.edu.finance.domain.entity.ContractItem">
+        SELECT *
+        FROM fin_contract_item
+        WHERE contract_id = #{contractId}
+        ORDER BY id
+    </select>
+
+</mapper>

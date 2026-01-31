@@ -2,16 +2,23 @@ package com.edu.marketing.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.marketing.domain.dto.LeadAutoAssignDTO;
+import com.edu.marketing.domain.dto.LeadImportResultDTO;
 import com.edu.marketing.domain.entity.FollowUp;
 import com.edu.marketing.domain.entity.Lead;
 import com.edu.marketing.service.LeadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -111,9 +118,30 @@ public class LeadController {
         return R.ok(leadService.importFromExcel(fileData));
     }
 
+    @Operation(summary = "批量导入线索（增强版）")
+    @PostMapping("/batch-import")
+    public R<LeadImportResultDTO> batchImport(@RequestParam("file") MultipartFile file) throws IOException {
+        byte[] fileData = file.getBytes();
+        LeadImportResultDTO result = leadService.batchImportLeads(fileData);
+        return R.ok(result);
+    }
+
+    @Operation(summary = "下载导入模板")
+    @GetMapping("/import-template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        byte[] data = leadService.downloadImportTemplate();
+        String fileName = "lead_import_template.xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(data);
+    }
+
     @Operation(summary = "自动分配线索")
     @PostMapping("/auto-assign")
-    public R<Boolean> autoAssign(@RequestBody List<Long> leadIds, @RequestParam Long campusId) {
-        return R.ok(leadService.autoAssignLeads(leadIds, campusId));
+    public R<Boolean> autoAssign(@RequestBody LeadAutoAssignDTO dto) {
+        return R.ok(leadService.autoAssignLeads(dto.getLeadIds(), dto.getCampusId()));
     }
 }

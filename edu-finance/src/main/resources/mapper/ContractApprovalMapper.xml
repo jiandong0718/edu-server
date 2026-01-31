@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ContractApprovalMapper">
+
+    <resultMap id="BaseResultMap" type="com.edu.finance.domain.entity.ContractApproval">
+        <id column="id" property="id"/>
+        <result column="contract_id" property="contractId"/>
+        <result column="approval_no" property="approvalNo"/>
+        <result column="approval_type" property="approvalType"/>
+        <result column="status" property="status"/>
+        <result column="submitter_id" property="submitterId"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="submit_reason" property="submitReason"/>
+        <result column="approver_id" property="approverId"/>
+        <result column="approve_time" property="approveTime"/>
+        <result column="approve_remark" property="approveRemark"/>
+        <result column="current_step" property="currentStep"/>
+        <result column="total_steps" property="totalSteps"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="selectByContractId" resultMap="BaseResultMap">
+        SELECT a.*,
+               u1.name as submitter_name,
+               u2.name as approver_name,
+               c.contract_no
+        FROM fin_contract_approval a
+        LEFT JOIN sys_user u1 ON a.submitter_id = u1.id
+        LEFT JOIN sys_user u2 ON a.approver_id = u2.id
+        LEFT JOIN fin_contract c ON a.contract_id = c.id
+        WHERE a.contract_id = #{contractId}
+          AND a.deleted = 0
+        ORDER BY a.submit_time DESC
+    </select>
+
+    <select id="selectPendingList" resultMap="BaseResultMap">
+        SELECT a.*,
+               u1.name as submitter_name,
+               c.contract_no
+        FROM fin_contract_approval a
+        LEFT JOIN sys_user u1 ON a.submitter_id = u1.id
+        LEFT JOIN fin_contract c ON a.contract_id = c.id
+        WHERE a.status = 'pending'
+          AND a.deleted = 0
+          AND EXISTS (
+              SELECT 1 FROM fin_contract_approval_flow f
+              WHERE f.approval_id = a.id
+                AND f.approver_id = #{approverId}
+                AND f.status = 'pending'
+          )
+        ORDER BY a.submit_time DESC
+    </select>
+
+</mapper>

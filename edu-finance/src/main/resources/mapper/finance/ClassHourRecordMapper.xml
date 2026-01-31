@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ClassHourRecordMapper">
+
+    <!-- 查询学员的课时消耗记录 -->
+    <select id="selectByStudentId" resultType="com.edu.finance.domain.entity.ClassHourRecord">
+        SELECT *
+        FROM fin_class_hour_record
+        WHERE student_id = #{studentId}
+        <if test="accountId != null">
+            AND account_id = #{accountId}
+        </if>
+        AND deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

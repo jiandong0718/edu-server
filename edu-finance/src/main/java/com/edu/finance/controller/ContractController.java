@@ -2,12 +2,26 @@ package com.edu.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.finance.domain.dto.ContractApprovalProcessDTO;
+import com.edu.finance.domain.dto.ContractApprovalSubmitDTO;
+import com.edu.finance.domain.dto.ContractPrintDTO;
 import com.edu.finance.domain.entity.Contract;
+import com.edu.finance.domain.entity.ContractApproval;
+import com.edu.finance.domain.entity.ContractApprovalFlow;
+import com.edu.finance.domain.entity.ContractPrintRecord;
+import com.edu.finance.domain.entity.ContractPrintTemplate;
+import com.edu.finance.service.ContractApprovalService;
+import com.edu.finance.service.ContractPdfService;
+import com.edu.finance.service.ContractPrintService;
 import com.edu.finance.service.ContractService;
+import com.edu.framework.security.SecurityContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.List;
 
 /**
  * 合同管理控制器
@@ -19,6 +33,9 @@ import org.springframework.web.bind.annotation.*;
 public class ContractController {
 
     private final ContractService contractService;
+    private final ContractPdfService contractPdfService;
+    private final ContractApprovalService contractApprovalService;
+    private final ContractPrintService contractPrintService;
 
     @Operation(summary = "分页查询合同列表")
     @GetMapping("/page")
@@ -65,5 +82,105 @@ public class ContractController {
     @DeleteMapping("/{id}")
     public R<Boolean> delete(@PathVariable Long id) {
         return R.ok(contractService.removeById(id));
+    }
+
+    @Operation(summary = "生成合同PDF")
+    @PostMapping("/{id}/pdf")
+    public R<String> generatePdf(@PathVariable Long id) {
+        String fileUrl = contractPdfService.generateContractPdf(id);
+        return R.ok(fileUrl);
+    }
+
+    @Operation(summary = "预览合同HTML")
+    @GetMapping("/{id}/preview")
+    public R<String> previewHtml(@PathVariable Long id) {
+        String html = contractPdfService.previewContractHtml(id);
+        return R.ok(html);
+    }
+
+    // ==================== 审批相关接口 ====================
+
+    @Operation(summary = "提交审批")
+    @PostMapping("/approval/submit")
+    public R<Long> submitApproval(@Valid @RequestBody ContractApprovalSubmitDTO submitDTO) {
+        Long approvalId = contractApprovalService.submitApproval(submitDTO);
+        return R.ok(approvalId);
+    }
+
+    @Operation(summary = "处理审批")
+    @PostMapping("/approval/process")
+    public R<Boolean> processApproval(@Valid @RequestBody ContractApprovalProcessDTO processDTO) {
+        Boolean result = contractApprovalService.processApproval(processDTO);
+        return R.ok(result);
+    }
+
+    @Operation(summary = "撤销审批")
+    @PostMapping("/approval/{id}/cancel")
+    public R<Boolean> cancelApproval(@PathVariable Long id) {
+        Boolean result = contractApprovalService.cancelApproval(id);
+        return R.ok(result);
+    }
+
+    @Operation(summary = "获取审批历史")
+    @GetMapping("/{id}/approval/history")
+    public R<List<ContractApproval>> getApprovalHistory(@PathVariable Long id) {
+        List<ContractApproval> history = contractApprovalService.getApprovalHistory(id);
+        return R.ok(history);
+    }
+
+    @Operation(summary = "获取审批流程")
+    @GetMapping("/approval/{id}/flow")
+    public R<List<ContractApprovalFlow>> getApprovalFlow(@PathVariable Long id) {
+        List<ContractApprovalFlow> flow = contractApprovalService.getApprovalFlow(id);
+        return R.ok(flow);
+    }
+
+    @Operation(summary = "获取待审批列表")
+    @GetMapping("/approval/pending")
+    public R<List<ContractApproval>> getPendingApprovals() {
+        Long approverId = SecurityContextHolder.getUserId();
+        List<ContractApproval> approvals = contractApprovalService.getPendingApprovals(approverId);
+        return R.ok(approvals);
+    }
+
+    // ==================== 打印相关接口 ====================
+
+    @Operation(summary = "打印合同")
+    @PostMapping("/print")
+    public R<Long> printContract(@Valid @RequestBody ContractPrintDTO printDTO) {
+        Long printId = contractPrintService.printContract(printDTO);
+        return R.ok(printId);
+    }
+
+    @Operation(summary = "批量打印合同")
+    @PostMapping("/print/batch")
+    public R<List<Long>> batchPrintContracts(
+            @RequestParam List<Long> contractIds,
+            @RequestParam(required = false) Long templateId) {
+        List<Long> printIds = contractPrintService.batchPrintContracts(contractIds, templateId);
+        return R.ok(printIds);
+    }
+
+    @Operation(summary = "获取打印记录")
+    @GetMapping("/{id}/print/records")
+    public R<List<ContractPrintRecord>> getPrintRecords(@PathVariable Long id) {
+        List<ContractPrintRecord> records = contractPrintService.getPrintRecords(id);
+        return R.ok(records);
+    }
+
+    @Operation(summary = "获取打印模板列表")
+    @GetMapping("/print/templates")
+    public R<List<ContractPrintTemplate>> getTemplateList() {
+        List<ContractPrintTemplate> templates = contractPrintService.getTemplateList();
+        return R.ok(templates);
+    }
+
+    @Operation(summary = "预览打印内容")
+    @GetMapping("/{id}/print/preview")
+    public R<String> previewPrint(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long templateId) {
+        String html = contractPrintService.previewPrint(id, templateId);
+        return R.ok(html);
     }
 }

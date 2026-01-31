@@ -6,6 +6,7 @@
         <id property="id" column="id"/>
         <result property="scheduleId" column="schedule_id"/>
         <result property="studentId" column="student_id"/>
+        <result property="classId" column="class_id"/>
         <result property="status" column="status"/>
         <result property="signTime" column="sign_time"/>
         <result property="classHours" column="class_hours"/>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ContractPrintTemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.edu.finance.domain.entity.ContractPrintTemplate">
+        <id column="id" property="id"/>
+        <result column="template_name" property="templateName"/>
+        <result column="template_code" property="templateCode"/>
+        <result column="template_type" property="templateType"/>
+        <result column="template_content" property="templateContent"/>
+        <result column="page_size" property="pageSize"/>
+        <result column="page_orientation" property="pageOrientation"/>
+        <result column="margin_top" property="marginTop"/>
+        <result column="margin_bottom" property="marginBottom"/>
+        <result column="margin_left" property="marginLeft"/>
+        <result column="margin_right" property="marginRight"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="selectDefaultTemplate" resultMap="BaseResultMap">
+        SELECT *
+        FROM fin_contract_print_template
+        WHERE is_default = 1
+          AND status = 'active'
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -1,0 +1,44 @@
+# ============================================================================
+# 在线支付配置示例
+# ============================================================================
+
+# 微信支付配置
+payment:
+  wechat:
+    enabled: false
+    app-id: wx1234567890abcdef
+    mch-id: 1234567890
+    api-key: your-api-key-32-characters-long
+    api-v3-key: your-api-v3-key-32-characters
+    serial-no: your-certificate-serial-number
+    private-key-path: /path/to/apiclient_key.pem
+    notify-url: https://your-domain.com/finance/online-payment/notify/wechat
+    api-url: https://api.mch.weixin.qq.com
+
+  # 支付宝支付配置
+  alipay:
+    enabled: false
+    app-id: 2021001234567890
+    private-key: your-private-key
+    alipay-public-key: alipay-public-key
+    sign-type: RSA2
+    charset: UTF-8
+    notify-url: https://your-domain.com/finance/online-payment/notify/alipay
+    return-url: https://your-domain.com/payment/return
+    gateway-url: https://openapi.alipay.com/gateway.do
+
+  # 银联支付配置
+  unionpay:
+    enabled: false
+    mer-id: 123456789012345
+    cert-path: /path/to/cert.pfx
+    cert-password: your-cert-password
+    cert-id: your-cert-id
+    validate-cert-path: /path/to/validate_cert.cer
+    middle-cert-path: /path/to/middle_cert.cer
+    root-cert-path: /path/to/root_cert.cer
+    notify-url: https://your-domain.com/finance/online-payment/notify/unionpay
+    return-url: https://your-domain.com/payment/return
+    front-url: https://gateway.95516.com/gateway/api/frontTransReq.do
+    back-url: https://gateway.95516.com/gateway/api/backTransReq.do
+    single-query-url: https://gateway.95516.com/gateway/api/queryTrans.do

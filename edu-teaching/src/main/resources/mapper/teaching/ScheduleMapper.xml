@@ -70,4 +70,83 @@
         </if>
     </select>
 
+    <select id="selectTeacherConflicts" resultMap="ScheduleResult">
+        SELECT s.*,
+               c.name as class_name,
+               co.name as course_name,
+               t.name as teacher_name,
+               cr.name as classroom_name
+        FROM tch_schedule s
+        LEFT JOIN tch_class c ON s.class_id = c.id
+        LEFT JOIN tch_course co ON s.course_id = co.id
+        LEFT JOIN tch_teacher t ON s.teacher_id = t.id
+        LEFT JOIN sys_classroom cr ON s.classroom_id = cr.id
+        WHERE s.deleted = 0
+          AND s.status != 'cancelled'
+          AND s.schedule_date = #{scheduleDate}
+          AND s.teacher_id = #{teacherId}
+          AND s.start_time &lt; #{endTime}
+          AND s.end_time &gt; #{startTime}
+        <if test="excludeId != null">
+            AND s.id != #{excludeId}
+        </if>
+        ORDER BY s.start_time
+    </select>
+
+    <select id="selectClassroomConflicts" resultMap="ScheduleResult">
+        SELECT s.*,
+               c.name as class_name,
+               co.name as course_name,
+               t.name as teacher_name,
+               cr.name as classroom_name
+        FROM tch_schedule s
+        LEFT JOIN tch_class c ON s.class_id = c.id
+        LEFT JOIN tch_course co ON s.course_id = co.id
+        LEFT JOIN tch_teacher t ON s.teacher_id = t.id
+        LEFT JOIN sys_classroom cr ON s.classroom_id = cr.id
+        WHERE s.deleted = 0
+          AND s.status != 'cancelled'
+          AND s.schedule_date = #{scheduleDate}
+          AND s.classroom_id = #{classroomId}
+          AND s.start_time &lt; #{endTime}
+          AND s.end_time &gt; #{startTime}
+        <if test="excludeId != null">
+            AND s.id != #{excludeId}
+        </if>
+        ORDER BY s.start_time
+    </select>
+
+    <select id="selectStudentConflictSchedules" resultMap="ScheduleResult">
+        SELECT DISTINCT s.*,
+               c.name as class_name,
+               co.name as course_name,
+               t.name as teacher_name,
+               cr.name as classroom_name
+        FROM tch_schedule s
+        INNER JOIN tch_class_student cs ON s.class_id = cs.class_id
+        INNER JOIN (
+            SELECT student_id
+            FROM tch_class_student
+            WHERE class_id = #{classId}
+              AND status = 'active'
+              AND deleted = 0
+        ) target_students ON cs.student_id = target_students.student_id
+        LEFT JOIN tch_class c ON s.class_id = c.id
+        LEFT JOIN tch_course co ON s.course_id = co.id
+        LEFT JOIN tch_teacher t ON s.teacher_id = t.id
+        LEFT JOIN sys_classroom cr ON s.classroom_id = cr.id
+        WHERE s.deleted = 0
+          AND s.status != 'cancelled'
+          AND s.schedule_date = #{scheduleDate}
+          AND s.start_time &lt; #{endTime}
+          AND s.end_time &gt; #{startTime}
+          AND cs.status = 'active'
+          AND cs.deleted = 0
+          AND s.class_id != #{classId}
+        <if test="excludeId != null">
+            AND s.id != #{excludeId}
+        </if>
+        ORDER BY s.start_time
+    </select>
+
 </mapper>

@@ -37,9 +37,24 @@ public interface DashboardMapper {
     // ========== 财务统计 ==========
 
     /**
+     * 统计今日收入
+     */
+    BigDecimal sumIncomeToday(@Param("campusId") Long campusId);
+
+    /**
+     * 统计本周收入
+     */
+    BigDecimal sumIncomeThisWeek(@Param("campusId") Long campusId);
+
+    /**
      * 统计本月收入
      */
     BigDecimal sumIncomeThisMonth(@Param("campusId") Long campusId);
+
+    /**
+     * 统计本年收入
+     */
+    BigDecimal sumIncomeThisYear(@Param("campusId") Long campusId);
 
     /**
      * 统计本月退费
@@ -52,9 +67,19 @@ public interface DashboardMapper {
     BigDecimal sumPendingAmount(@Param("campusId") Long campusId);
 
     /**
+     * 统计逾期欠费金额
+     */
+    BigDecimal sumOverdueAmount(@Param("campusId") Long campusId);
+
+    /**
      * 统计合同数
      */
     int countContracts(@Param("campusId") Long campusId);
+
+    /**
+     * 收款方式分布
+     */
+    List<Map<String, Object>> getPaymentMethodDistribution(@Param("campusId") Long campusId);
 
     /**
      * 近N天收入趋势
@@ -91,6 +116,16 @@ public interface DashboardMapper {
     int countTeachers(@Param("campusId") Long campusId);
 
     /**
+     * 按状态统计教师数
+     */
+    int countTeachersByStatus(@Param("campusId") Long campusId, @Param("status") String status);
+
+    /**
+     * 统计课程数
+     */
+    int countCourses(@Param("campusId") Long campusId);
+
+    /**
      * 计算出勤率
      */
     Double calculateAttendanceRate(@Param("campusId") Long campusId,
@@ -105,6 +140,11 @@ public interface DashboardMapper {
     int countLeads(@Param("campusId") Long campusId);
 
     /**
+     * 按状态统计线索数
+     */
+    int countLeadsByStatus(@Param("campusId") Long campusId, @Param("status") String status);
+
+    /**
      * 统计本月新增线索数
      */
     int countNewLeadsThisMonth(@Param("campusId") Long campusId);
@@ -115,7 +155,32 @@ public interface DashboardMapper {
     int countConvertedThisMonth(@Param("campusId") Long campusId);
 
     /**
+     * 统计试听总数
+     */
+    int countTrials(@Param("campusId") Long campusId);
+
+    /**
+     * 统计本月试听数
+     */
+    int countTrialsThisMonth(@Param("campusId") Long campusId);
+
+    /**
+     * 统计试听转化数
+     */
+    int countTrialConverted(@Param("campusId") Long campusId);
+
+    /**
      * 线索来源分布
      */
     List<Map<String, Object>> getLeadSourceDistribution(@Param("campusId") Long campusId);
+
+    /**
+     * 线索趋势（近N天）
+     */
+    List<Map<String, Object>> getLeadTrend(@Param("campusId") Long campusId, @Param("days") int days);
+
+    /**
+     * 转化趋势（近N天）
+     */
+    List<Map<String, Object>> getConversionTrend(@Param("campusId") Long campusId, @Param("days") int days);
 }

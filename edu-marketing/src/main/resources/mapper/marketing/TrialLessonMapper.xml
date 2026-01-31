@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.marketing.mapper.TrialLessonMapper">
+
+    <resultMap id="TrialLessonResult" type="com.edu.marketing.domain.entity.TrialLesson">
+        <id property="id" column="id"/>
+        <result property="leadId" column="lead_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="classId" column="class_id"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="trialDate" column="trial_date"/>
+        <result property="trialTime" column="trial_time"/>
+        <result property="status" column="status"/>
+        <result property="feedback" column="feedback"/>
+        <result property="rating" column="rating"/>
+        <result property="advisorId" column="advisor_id"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+    </resultMap>
+
+    <select id="selectTrialLessonPage" resultMap="TrialLessonResult">
+        SELECT t.*
+        FROM mkt_trial_lesson t
+        WHERE t.deleted = 0
+        <if test="query.leadId != null">
+            AND t.lead_id = #{query.leadId}
+        </if>
+        <if test="query.studentId != null">
+            AND t.student_id = #{query.studentId}
+        </if>
+        <if test="query.courseId != null">
+            AND t.course_id = #{query.courseId}
+        </if>
+        <if test="query.classId != null">
+            AND t.class_id = #{query.classId}
+        </if>
+        <if test="query.campusId != null">
+            AND t.campus_id = #{query.campusId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND t.status = #{query.status}
+        </if>
+        <if test="query.advisorId != null">
+            AND t.advisor_id = #{query.advisorId}
+        </if>
+        <if test="query.trialDate != null">
+            AND t.trial_date = #{query.trialDate}
+        </if>
+        ORDER BY t.trial_date DESC, t.trial_time DESC, t.create_time DESC
+    </select>
+
+    <resultMap id="TrialLessonVOResult" type="com.edu.marketing.domain.vo.TrialLessonVO">
+        <id property="id" column="id"/>
+        <result property="leadId" column="lead_id"/>
+        <result property="leadName" column="lead_name"/>
+        <result property="leadPhone" column="lead_phone"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="studentPhone" column="student_phone"/>
+        <result property="courseId" column="course_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="classId" column="class_id"/>
+        <result property="className" column="class_name"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="trialDate" column="trial_date"/>
+        <result property="trialTime" column="trial_time"/>
+        <result property="status" column="status"/>
+        <result property="statusDesc" column="status_desc"/>
+        <result property="feedback" column="feedback"/>
+        <result property="rating" column="rating"/>
+        <result property="advisorId" column="advisor_id"/>
+        <result property="advisorName" column="advisor_name"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectTrialLessonVOPage" resultMap="TrialLessonVOResult">
+        SELECT
+            t.id,
+            t.lead_id,
+            l.name AS lead_name,
+            l.phone AS lead_phone,
+            t.student_id,
+            s.name AS student_name,
+            s.phone AS student_phone,
+            t.course_id,
+            c.name AS course_name,
+            t.class_id,
+            cl.name AS class_name,
+            t.schedule_id,
+            t.campus_id,
+            cp.name AS campus_name,
+            t.trial_date,
+            t.trial_time,
+            t.status,
+            CASE t.status
+                WHEN 'appointed' THEN '已预约'
+                WHEN 'attended' THEN '已到场'
+                WHEN 'absent' THEN '未到场'
+                WHEN 'converted' THEN '已转化'
+                ELSE '未知'
+            END AS status_desc,
+            t.feedback,
+            t.rating,
+            t.advisor_id,
+            u.real_name AS advisor_name,
+            t.remark,
+            t.create_time,
+            t.update_time
+        FROM mkt_trial_lesson t
+        LEFT JOIN mkt_lead l ON t.lead_id = l.id AND l.deleted = 0
+        LEFT JOIN stu_student s ON t.student_id = s.id AND s.deleted = 0
+        LEFT JOIN tch_course c ON t.course_id = c.id AND c.deleted = 0
+        LEFT JOIN tch_class cl ON t.class_id = cl.id AND cl.deleted = 0
+        LEFT JOIN sys_campus cp ON t.campus_id = cp.id AND cp.deleted = 0
+        LEFT JOIN sys_user u ON t.advisor_id = u.id AND u.deleted = 0
+        WHERE t.deleted = 0
+        <if test="query.leadId != null">
+            AND t.lead_id = #{query.leadId}
+        </if>
+        <if test="query.studentId != null">
+            AND t.student_id = #{query.studentId}
+        </if>
+        <if test="query.courseId != null">
+            AND t.course_id = #{query.courseId}
+        </if>
+        <if test="query.classId != null">
+            AND t.class_id = #{query.classId}
+        </if>
+        <if test="query.campusId != null">
+            AND t.campus_id = #{query.campusId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND t.status = #{query.status}
+        </if>
+        <if test="query.advisorId != null">
+            AND t.advisor_id = #{query.advisorId}
+        </if>
+        <if test="query.trialDateStart != null">
+            AND t.trial_date &gt;= #{query.trialDateStart}
+        </if>
+        <if test="query.trialDateEnd != null">
+            AND t.trial_date &lt;= #{query.trialDateEnd}
+        </if>
+        <if test="query.leadName != null and query.leadName != ''">
+            AND l.name LIKE CONCAT('%', #{query.leadName}, '%')
+        </if>
+        <if test="query.studentName != null and query.studentName != ''">
+            AND s.name LIKE CONCAT('%', #{query.studentName}, '%')
+        </if>
+        <if test="query.phone != null and query.phone != ''">
+            AND (l.phone LIKE CONCAT('%', #{query.phone}, '%') OR s.phone LIKE CONCAT('%', #{query.phone}, '%'))
+        </if>
+        ORDER BY t.trial_date DESC, t.trial_time DESC, t.create_time DESC
+    </select>
+
+</mapper>

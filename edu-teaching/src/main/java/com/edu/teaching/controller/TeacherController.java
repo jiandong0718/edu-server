@@ -94,11 +94,12 @@ public class TeacherController {
         return R.ok(teacherService.removeByIds(ids));
     }
 
-    @Operation(summary = "修改教师状态")
+    @Operation(summary = "修改教师状态（已废弃，请使用 /teaching/teacher/status/change 接口）")
+    @Deprecated
     @PutMapping("/{id}/status")
     public R<Boolean> updateStatus(@PathVariable Long id, @RequestParam String status) {
         // 验证状态值
-        if (!List.of("active", "leave", "resigned").contains(status)) {
+        if (!List.of("active", "on_leave", "resigned").contains(status)) {
             throw new BusinessException("无效的状态值");
         }
         return R.ok(teacherService.updateStatus(id, status));

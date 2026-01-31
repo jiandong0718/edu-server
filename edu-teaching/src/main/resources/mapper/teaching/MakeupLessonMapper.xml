@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.teaching.mapper.MakeupLessonMapper">
+
+    <resultMap id="MakeupLessonResult" type="com.edu.teaching.domain.entity.MakeupLesson">
+        <id property="id" column="id"/>
+        <result property="leaveRequestId" column="leave_request_id"/>
+        <result property="originalScheduleId" column="original_schedule_id"/>
+        <result property="makeupScheduleId" column="makeup_schedule_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="studentName" column="student_name"/>
+        <result property="studentNo" column="student_no"/>
+        <result property="originalScheduleDate" column="original_schedule_date"/>
+        <result property="makeupScheduleDate" column="makeup_schedule_date"/>
+        <result property="originalTeacherName" column="original_teacher_name"/>
+        <result property="makeupTeacherName" column="makeup_teacher_name"/>
+    </resultMap>
+
+    <select id="selectMakeupLessonPage" resultMap="MakeupLessonResult">
+        SELECT ml.*,
+               s.name as student_name,
+               s.student_no as student_no,
+               CONCAT(os.schedule_date, ' ', os.start_time, '-', os.end_time) as original_schedule_date,
+               CONCAT(ms.schedule_date, ' ', ms.start_time, '-', ms.end_time) as makeup_schedule_date,
+               ot.name as original_teacher_name,
+               mt.name as makeup_teacher_name
+        FROM tch_makeup_lesson ml
+        LEFT JOIN stu_student s ON ml.student_id = s.id
+        LEFT JOIN tch_schedule os ON ml.original_schedule_id = os.id
+        LEFT JOIN tch_schedule ms ON ml.makeup_schedule_id = ms.id
+        LEFT JOIN tch_teacher ot ON os.teacher_id = ot.id
+        LEFT JOIN tch_teacher mt ON ms.teacher_id = mt.id
+        WHERE ml.deleted = 0
+        <if test="query.studentId != null">
+            AND ml.student_id = #{query.studentId}
+        </if>
+        <if test="query.campusId != null">
+            AND ml.campus_id = #{query.campusId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND ml.status = #{query.status}
+        </if>
+        <if test="query.leaveRequestId != null">
+            AND ml.leave_request_id = #{query.leaveRequestId}
+        </if>
+        ORDER BY ml.create_time DESC
+    </select>
+
+</mapper>

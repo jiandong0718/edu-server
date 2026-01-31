@@ -79,7 +79,7 @@ public class Teacher extends BaseEntity {
     private String introduction;
 
     /**
-     * 状态：active-在职，leave-休假，resigned-离职
+     * 状态：active-在职，on_leave-休假，resigned-离职
      */
     private String status;
 

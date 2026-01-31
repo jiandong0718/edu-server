@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.teaching.mapper.ClassStudentMapper">
+
+    <select id="selectStudentIdsByClassId" resultType="java.lang.Long">
+        SELECT student_id
+        FROM tch_class_student
+        WHERE class_id = #{classId}
+          AND status = 'active'
+          AND deleted = 0
+    </select>
+
+    <select id="selectClassIdsByStudentId" resultType="java.lang.Long">
+        SELECT class_id
+        FROM tch_class_student
+        WHERE student_id = #{studentId}
+          AND status = 'active'
+          AND deleted = 0
+    </select>
+
+</mapper>

@@ -43,6 +43,11 @@ public class Student extends BaseEntity {
     private String phone;
 
     /**
+     * 身份证号
+     */
+    private String idCard;
+
+    /**
      * 头像
      */
     private String avatar;
@@ -76,6 +81,11 @@ public class Student extends BaseEntity {
      * 跟进顾问ID
      */
     private Long advisorId;
+
+    /**
+     * 地址
+     */
+    private String address;
 
     /**
      * 备注

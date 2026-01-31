@@ -6,10 +6,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.common.exception.BusinessException;
 import com.edu.teaching.domain.entity.Attendance;
 import com.edu.teaching.domain.entity.LeaveRequest;
+import com.edu.teaching.domain.entity.MakeupLesson;
+import com.edu.teaching.domain.entity.Schedule;
+import com.edu.teaching.event.LeaveApprovedEvent;
 import com.edu.teaching.mapper.LeaveRequestMapper;
 import com.edu.teaching.service.AttendanceService;
 import com.edu.teaching.service.LeaveRequestService;
+import com.edu.teaching.service.MakeupLessonService;
+import com.edu.teaching.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +31,9 @@ import java.time.format.DateTimeFormatter;
 public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, LeaveRequest> implements LeaveRequestService {
 
     private final AttendanceService attendanceService;
+    private final ScheduleService scheduleService;
+    private final MakeupLessonService makeupLessonService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<LeaveRequest> getLeaveRequestPage(IPage<LeaveRequest> page, LeaveRequest query) {
@@ -40,10 +49,24 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
 
         // 如果是单次请假且指定了排课ID，设置日期
         if ("single".equals(leaveRequest.getType()) && leaveRequest.getScheduleId() != null) {
-            // TODO: 从排课获取日期
-            // Schedule schedule = scheduleService.getById(leaveRequest.getScheduleId());
-            // leaveRequest.setStartDate(schedule.getScheduleDate());
-            // leaveRequest.setEndDate(schedule.getScheduleDate());
+            Schedule schedule = scheduleService.getById(leaveRequest.getScheduleId());
+            if (schedule == null) {
+                throw new BusinessException("排课不存在");
+            }
+            leaveRequest.setStartDate(schedule.getScheduleDate());
+            leaveRequest.setEndDate(schedule.getScheduleDate());
+            leaveRequest.setClassId(schedule.getClassId());
+            leaveRequest.setCampusId(schedule.getCampusId());
+        }
+
+        // 验证日期范围
+        if ("period".equals(leaveRequest.getType())) {
+            if (leaveRequest.getStartDate() == null || leaveRequest.getEndDate() == null) {
+                throw new BusinessException("时段请假必须指定开始和结束日期");
+            }
+            if (leaveRequest.getStartDate().isAfter(leaveRequest.getEndDate())) {
+                throw new BusinessException("开始日期不能晚于结束日期");
+            }
         }
 
         return save(leaveRequest);
@@ -78,6 +101,15 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
                 // 时段请假，需要更新该时段内所有排课的考勤
                 // TODO: 查询该时段内该学员的所有排课，更新考勤状态
             }
+
+            // 发布请假审批事件
+            eventPublisher.publishEvent(new LeaveApprovedEvent(
+                    this,
+                    leaveRequest.getId(),
+                    leaveRequest.getStudentId(),
+                    approved,
+                    remark
+            ));
         }
 
         return result;
@@ -110,8 +142,28 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
             throw new BusinessException("只能为已批准的请假安排补课");
         }
 
-        leaveRequest.setMakeupScheduleId(makeupScheduleId);
-        return updateById(leaveRequest);
+        if (leaveRequest.getScheduleId() == null) {
+            throw new BusinessException("只能为单次请假安排补课");
+        }
+
+        // 创建补课记录
+        MakeupLesson makeupLesson = new MakeupLesson();
+        makeupLesson.setLeaveRequestId(id);
+        makeupLesson.setOriginalScheduleId(leaveRequest.getScheduleId());
+        makeupLesson.setMakeupScheduleId(makeupScheduleId);
+        makeupLesson.setStudentId(leaveRequest.getStudentId());
+        makeupLesson.setCampusId(leaveRequest.getCampusId());
+        makeupLesson.setStatus("pending");
+
+        boolean result = makeupLessonService.arrangeMakeup(makeupLesson);
+
+        // 更新请假申请的补课排课ID
+        if (result) {
+            leaveRequest.setMakeupScheduleId(makeupScheduleId);
+            updateById(leaveRequest);
+        }
+
+        return result;
     }
 
     @Override

@@ -83,6 +83,41 @@ public class Schedule extends BaseEntity {
     private String remark;
 
     /**
+     * 原教师ID（代课时记录）
+     */
+    private Long originalTeacherId;
+
+    /**
+     * 代课原因
+     */
+    private String substituteReason;
+
+    /**
+     * 停课原因
+     */
+    private String cancelReason;
+
+    /**
+     * 是否需要补课
+     */
+    private Boolean needMakeup;
+
+    /**
+     * 补课日期
+     */
+    private LocalDate makeupDate;
+
+    /**
+     * 补课开始时间
+     */
+    private LocalTime makeupStartTime;
+
+    /**
+     * 补课结束时间
+     */
+    private LocalTime makeupEndTime;
+
+    /**
      * 班级名称（非数据库字段）
      */
     @TableField(exist = false)

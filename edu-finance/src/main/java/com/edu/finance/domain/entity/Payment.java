@@ -62,9 +62,44 @@ public class Payment extends BaseEntity {
     private String transactionNo;
 
     /**
+     * 支付渠道订单号
+     */
+    private String channelOrderNo;
+
+    /**
+     * 支付场景：app-APP支付, h5-H5支付, native-扫码支付, jsapi-公众号/小程序支付
+     */
+    private String paymentScene;
+
+    /**
      * 收款人ID
      */
     private Long receiverId;
+
+    /**
+     * 买家用户ID(openid/buyer_id等)
+     */
+    private String buyerId;
+
+    /**
+     * 买家账号
+     */
+    private String buyerAccount;
+
+    /**
+     * 回调通知时间
+     */
+    private LocalDateTime notifyTime;
+
+    /**
+     * 错误码
+     */
+    private String errorCode;
+
+    /**
+     * 错误信息
+     */
+    private String errorMsg;
 
     /**
      * 备注
