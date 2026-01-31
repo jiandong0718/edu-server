@@ -50,7 +50,7 @@ public class AlipayPaymentGateway implements PaymentGateway {
                     request.getPaymentId(), request.getAmount(), request.getPaymentScene());
 
             // 构建请求参数
-            Map<String, String> params = buildPaymentParams(request);
+            Map<String, Object> params = buildPaymentParams(request);
 
             // 生成签名
             String sign = generateSign(params);
@@ -83,7 +83,7 @@ public class AlipayPaymentGateway implements PaymentGateway {
         try {
             log.info("查询支付宝支付订单: outTradeNo={}", outTradeNo);
 
-            Map<String, String> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
             params.put("app_id", config.getAppId());
             params.put("method", "alipay.trade.query");
             params.put("charset", config.getCharset());
@@ -100,7 +100,8 @@ public class AlipayPaymentGateway implements PaymentGateway {
             params.put("sign", sign);
 
             // 发送请求
-            String response = HttpUtil.post(config.getGatewayUrl(), params);
+            String gatewayUrl = config.getGatewayUrl();
+            String response = HttpUtil.post(gatewayUrl, params);
             JSONObject result = JSONUtil.parseObj(response);
 
             return parseQueryResponse(result);
@@ -116,7 +117,7 @@ public class AlipayPaymentGateway implements PaymentGateway {
         try {
             log.info("关闭支付宝支付订单: outTradeNo={}", outTradeNo);
 
-            Map<String, String> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
             params.put("app_id", config.getAppId());
             params.put("method", "alipay.trade.close");
             params.put("charset", config.getCharset());
@@ -204,8 +205,8 @@ public class AlipayPaymentGateway implements PaymentGateway {
     /**
      * 构建支付参数
      */
-    private Map<String, String> buildPaymentParams(OnlinePaymentRequest request) {
-        Map<String, String> params = new HashMap<>();
+    private Map<String, Object> buildPaymentParams(OnlinePaymentRequest request) {
+        Map<String, Object> params = new HashMap<>();
         params.put("app_id", config.getAppId());
         params.put("method", getPayMethod(request.getPaymentScene()));
         params.put("charset", config.getCharset());
@@ -258,10 +259,13 @@ public class AlipayPaymentGateway implements PaymentGateway {
     /**
      * 生成签名
      */
-    private String generateSign(Map<String, String> params) {
+    private String generateSign(Map<String, Object> params) {
         // 排序并拼接参数
         String content = new TreeMap<>(params).entrySet().stream()
-                .filter(e -> StrUtil.isNotBlank(e.getValue()) && !"sign".equals(e.getKey()))
+                .filter(e -> {
+                    Object value = e.getValue();
+                    return StrUtil.isNotBlank(String.valueOf(value)) && !"sign".equals(e.getKey());
+                })
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
 
@@ -272,9 +276,9 @@ public class AlipayPaymentGateway implements PaymentGateway {
     /**
      * 生成支付凭证
      */
-    private String generateCredential(Map<String, String> params, String scene) {
+    private String generateCredential(Map<String, Object> params, String scene) {
         String queryString = params.entrySet().stream()
-                .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                .map(e -> e.getKey() + "=" + URLEncoder.encode(String.valueOf(e.getValue()), StandardCharsets.UTF_8))
                 .collect(Collectors.joining("&"));
 
         if ("native".equals(scene)) {

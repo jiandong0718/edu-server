@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -46,7 +47,7 @@ public class UnionPaymentGateway implements PaymentGateway {
                     request.getPaymentId(), request.getAmount(), request.getPaymentScene());
 
             // 构建请求参数
-            Map<String, String> params = buildPaymentParams(request);
+            Map<String, Object> params = buildPaymentParams(request);
 
             // 生成签名
             String sign = generateSign(params);
@@ -76,7 +77,7 @@ public class UnionPaymentGateway implements PaymentGateway {
         try {
             log.info("查询银联支付订单: outTradeNo={}", outTradeNo);
 
-            Map<String, String> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
             params.put("version", "5.1.0");
             params.put("encoding", "UTF-8");
             params.put("signMethod", "01");
@@ -170,8 +171,8 @@ public class UnionPaymentGateway implements PaymentGateway {
     /**
      * 构建支付参数
      */
-    private Map<String, String> buildPaymentParams(OnlinePaymentRequest request) {
-        Map<String, String> params = new HashMap<>();
+    private Map<String, Object> buildPaymentParams(OnlinePaymentRequest request) {
+        Map<String, Object> params = new HashMap<>();
         params.put("version", "5.1.0");
         params.put("encoding", "UTF-8");
         params.put("signMethod", "01");
@@ -208,10 +209,10 @@ public class UnionPaymentGateway implements PaymentGateway {
     /**
      * 生成签名
      */
-    private String generateSign(Map<String, String> params) {
+    private String generateSign(Map<String, Object> params) {
         // 排序并拼接参数
         String content = new TreeMap<>(params).entrySet().stream()
-                .filter(e -> StrUtil.isNotBlank(e.getValue()) && !"signature".equals(e.getKey()))
+                .filter(e -> StrUtil.isNotBlank(String.valueOf(e.getValue())) && !"signature".equals(e.getKey()))
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
 

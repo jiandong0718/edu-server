@@ -192,15 +192,6 @@ public class ContractController {
         return R.ok(html);
     }
 
-    // ==================== PDF生成相关接口（使用iText 7直接生成）====================
-
-    @Operation(summary = "生成合同PDF（iText 7直接生成）")
-    @PostMapping("/{id}/generate-pdf")
-    public R<String> generatePdf(@PathVariable Long id) {
-        String fileUrl = contractPdfGeneratorService.generateAndSavePdf(id);
-        return R.ok(fileUrl);
-    }
-
     @Operation(summary = "下载合同PDF")
     @GetMapping("/{id}/download-pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
