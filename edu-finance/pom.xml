@@ -27,6 +27,12 @@
             <artifactId>edu-student</artifactId>
         </dependency>
 
+        <!-- edu-teaching for attendance events -->
+        <dependency>
+            <groupId>com.edu</groupId>
+            <artifactId>edu-teaching</artifactId>
+        </dependency>
+
         <!-- Validation API -->
         <dependency>
             <groupId>jakarta.validation</groupId>
