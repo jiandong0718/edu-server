@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.common.exception.BusinessException;
-import com.edu.framework.context.CampusContextHolder;
+import com.edu.framework.mybatis.CampusContextHolder;
 import com.edu.marketing.domain.dto.LeadImportDTO;
 import com.edu.marketing.domain.dto.LeadImportResultDTO;
 import com.edu.marketing.domain.entity.FollowUp;
@@ -19,6 +19,7 @@ import com.edu.marketing.mapper.FollowUpMapper;
 import com.edu.marketing.mapper.LeadMapper;
 import com.edu.marketing.service.LeadService;
 import com.edu.student.api.StudentApi;
+import com.edu.student.api.dto.StudentDTO;
 import com.edu.student.domain.entity.Student;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -148,7 +149,7 @@ public class LeadServiceImpl extends ServiceImpl<LeadMapper, Lead> implements Le
         }
 
         // 检查手机号是否已存在学员
-        Student existStudent = studentApi.getByPhone(lead.getPhone());
+        StudentDTO existStudent = studentApi.getStudentByPhone(lead.getPhone());
         if (existStudent != null) {
             throw new BusinessException("该手机号已存在学员记录");
         }

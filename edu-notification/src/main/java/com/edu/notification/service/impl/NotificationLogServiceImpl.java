@@ -215,47 +215,47 @@ public class NotificationLogServiceImpl extends ServiceImpl<NotificationLogMappe
     /**
      * 异步重发通知
      *
-     * @param log 发送记录
+     * @param notificationLog 发送记录
      */
     @Async
-    protected void asyncResend(NotificationLog log) {
+    protected void asyncResend(NotificationLog notificationLog) {
         try {
-            log.setStatus("sending");
-            log.setRetryCount(log.getRetryCount() == null ? 1 : log.getRetryCount() + 1);
-            log.setUpdateTime(LocalDateTime.now());
-            updateById(log);
+            notificationLog.setStatus("sending");
+            notificationLog.setRetryCount(notificationLog.getRetryCount() == null ? 1 : notificationLog.getRetryCount() + 1);
+            notificationLog.setUpdateTime(LocalDateTime.now());
+            updateById(notificationLog);
 
             // TODO: 实际的重发逻辑，根据不同类型调用不同的发送服务
             // 这里模拟发送过程
-            boolean sendSuccess = simulateSend(log);
+            boolean sendSuccess = simulateSend(notificationLog);
 
             if (sendSuccess) {
-                log.setStatus("success");
-                log.setSendTime(LocalDateTime.now());
-                log.setFailReason(null);
+                notificationLog.setStatus("success");
+                notificationLog.setSendTime(LocalDateTime.now());
+                notificationLog.setFailReason(null);
             } else {
-                log.setStatus("failed");
-                log.setFailReason("重发失败");
+                notificationLog.setStatus("failed");
+                notificationLog.setFailReason("重发失败");
             }
 
-            updateById(log);
-            log.info("通知重发完成，ID: {}, 状态: {}", log.getId(), log.getStatus());
+            updateById(notificationLog);
+            log.info("通知重发完成，ID: {}, 状态: {}", notificationLog.getId(), notificationLog.getStatus());
 
         } catch (Exception e) {
-            log.error("通知重发异常，ID: {}", log.getId(), e);
-            log.setStatus("failed");
-            log.setFailReason("重发异常: " + e.getMessage());
-            updateById(log);
+            log.error("通知重发异常，ID: {}", notificationLog.getId(), e);
+            notificationLog.setStatus("failed");
+            notificationLog.setFailReason("重发异常: " + e.getMessage());
+            updateById(notificationLog);
         }
     }
 
     /**
      * 模拟发送（实际项目中应该调用真实的发送服务）
      *
-     * @param log 发送记录
+     * @param notificationLog 发送记录
      * @return 是否成功
      */
-    private boolean simulateSend(NotificationLog log) {
+    private boolean simulateSend(NotificationLog notificationLog) {
         // TODO: 根据类型调用不同的发送服务
         // 短信: smsService.send()
         // 站内信: userMessageService.send()
@@ -264,7 +264,7 @@ public class NotificationLogServiceImpl extends ServiceImpl<NotificationLogMappe
         // 推送: pushService.send()
 
         // 这里简单模拟，实际应该调用真实服务
-        log.info("模拟发送通知，类型: {}, 接收人: {}", log.getType(), log.getReceiver());
+        log.info("模拟发送通知，类型: {}, 接收人: {}", notificationLog.getType(), notificationLog.getReceiver());
         return true;
     }
 
