@@ -7,6 +7,7 @@ import com.edu.common.exception.BusinessException;
 import com.edu.finance.domain.dto.ClassHourAccountCreateDTO;
 import com.edu.finance.domain.dto.ClassHourAdjustDTO;
 import com.edu.finance.domain.dto.ClassHourBalanceQueryDTO;
+import com.edu.finance.domain.dto.ClassHourBatchAdjustDTO;
 import com.edu.finance.domain.dto.ClassHourDeductDTO;
 import com.edu.finance.domain.entity.ClassHourAccount;
 import com.edu.finance.domain.entity.ClassHourRecord;
@@ -30,7 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课时账户服务实现
@@ -142,6 +145,9 @@ public class ClassHourAccountServiceImpl extends ServiceImpl<ClassHourAccountMap
 
         // 检查余额是否足够
         if (account.getRemainingHours().compareTo(dto.getHours()) < 0) {
+            // 发送课时不足预警
+            publishWarningEvent(account, "insufficient_balance",
+                    "课时余额不足，剩余: " + account.getRemainingHours() + "，需要: " + dto.getHours());
             throw new BusinessException("课时余额不足，剩余: " + account.getRemainingHours() + "，需要: " + dto.getHours());
         }
 
@@ -173,9 +179,42 @@ public class ClassHourAccountServiceImpl extends ServiceImpl<ClassHourAccountMap
 
             log.info("课时扣减成功: studentId={}, courseId={}, hours={}, remaining={}",
                     dto.getStudentId(), dto.getCourseId(), dto.getHours(), newRemainingHours);
+
+            // 检查是否需要发送低余额预警（剩余课时 <= 5）
+            BigDecimal warningThreshold = BigDecimal.valueOf(5);
+            if (newRemainingHours.compareTo(BigDecimal.ZERO) > 0
+                    && newRemainingHours.compareTo(warningThreshold) <= 0) {
+                publishWarningEvent(account, "low_balance",
+                        "课时余额不足，剩余: " + newRemainingHours + " 课时");
+            }
         }
 
         return result;
+    }
+
+    /**
+     * 发布课时预警事件
+     */
+    private void publishWarningEvent(ClassHourAccount account, String warningType, String message) {
+        try {
+            ClassHourWarningEvent event = new ClassHourWarningEvent(
+                    this,
+                    warningType,
+                    account.getId(),
+                    account.getStudentId(),
+                    account.getCourseId(),
+                    account.getRemainingHours(),
+                    BigDecimal.valueOf(5), // 默认阈值
+                    message,
+                    true
+            );
+            eventPublisher.publishEvent(event);
+            log.info("发布课时预警事件: type={}, studentId={}, courseId={}, remaining={}",
+                    warningType, account.getStudentId(), account.getCourseId(), account.getRemainingHours());
+        } catch (Exception e) {
+            log.error("发布课时预警事件失败: studentId={}, courseId={}",
+                    account.getStudentId(), account.getCourseId(), e);
+        }
     }
 
     @Override
@@ -304,6 +343,43 @@ public class ClassHourAccountServiceImpl extends ServiceImpl<ClassHourAccountMap
             default:
                 throw new BusinessException("不支持的调整类型: " + dto.getAdjustType());
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<Long, Boolean> batchAdjustClassHour(ClassHourBatchAdjustDTO dto) {
+        Map<Long, Boolean> resultMap = new HashMap<>();
+
+        if (dto.getAdjustments() == null || dto.getAdjustments().isEmpty()) {
+            throw new BusinessException("调整列表不能为空");
+        }
+
+        // 如果需要审批，这里可以添加审批逻辑
+        if (Boolean.TRUE.equals(dto.getNeedApproval())) {
+            if (dto.getApproverId() == null) {
+                throw new BusinessException("需要审批时必须指定审批人");
+            }
+            // TODO: 实现审批流程
+            log.info("批量课时调整需要审批，审批人ID: {}", dto.getApproverId());
+        }
+
+        // 批量执行调整
+        for (ClassHourAdjustDTO adjustDTO : dto.getAdjustments()) {
+            try {
+                boolean success = adjustClassHour(adjustDTO);
+                resultMap.put(adjustDTO.getAccountId(), success);
+            } catch (Exception e) {
+                log.error("课时调整失败: accountId={}, error={}", adjustDTO.getAccountId(), e.getMessage());
+                resultMap.put(adjustDTO.getAccountId(), false);
+            }
+        }
+
+        log.info("批量课时调整完成: total={}, success={}, failed={}",
+                dto.getAdjustments().size(),
+                resultMap.values().stream().filter(v -> v).count(),
+                resultMap.values().stream().filter(v -> !v).count());
+
+        return resultMap;
     }
 
     @Override

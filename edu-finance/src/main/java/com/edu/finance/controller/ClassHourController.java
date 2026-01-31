@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
 import com.edu.finance.domain.dto.ClassHourAdjustDTO;
 import com.edu.finance.domain.dto.ClassHourBalanceQueryDTO;
+import com.edu.finance.domain.dto.ClassHourBatchAdjustDTO;
 import com.edu.finance.domain.entity.ClassHourRecord;
 import com.edu.finance.domain.vo.ClassHourBalanceVO;
 import com.edu.finance.domain.vo.ClassHourRecordVO;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课时管理控制器
@@ -36,6 +38,13 @@ public class ClassHourController {
     @PostMapping("/adjust")
     public R<Boolean> adjustClassHour(@Valid @RequestBody ClassHourAdjustDTO dto) {
         return R.ok(classHourAccountService.adjustClassHour(dto));
+    }
+
+    @Operation(summary = "批量课时调整")
+    @PostMapping("/adjust/batch")
+    public R<Map<Long, Boolean>> batchAdjustClassHour(@Valid @RequestBody ClassHourBatchAdjustDTO dto) {
+        Map<Long, Boolean> result = classHourAccountService.batchAdjustClassHour(dto);
+        return R.ok(result);
     }
 
     @Operation(summary = "查询课时余额")

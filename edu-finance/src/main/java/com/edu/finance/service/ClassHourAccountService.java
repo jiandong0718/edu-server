@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.edu.finance.domain.dto.ClassHourAccountCreateDTO;
 import com.edu.finance.domain.dto.ClassHourAdjustDTO;
 import com.edu.finance.domain.dto.ClassHourBalanceQueryDTO;
+import com.edu.finance.domain.dto.ClassHourBatchAdjustDTO;
 import com.edu.finance.domain.dto.ClassHourDeductDTO;
 import com.edu.finance.domain.entity.ClassHourAccount;
 import com.edu.finance.domain.vo.ClassHourAccountVO;
@@ -12,6 +13,7 @@ import com.edu.finance.domain.vo.ClassHourStatisticsVO;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课时账户服务接口
@@ -93,6 +95,14 @@ public interface ClassHourAccountService extends IService<ClassHourAccount> {
      * @return 是否成功
      */
     boolean adjustClassHour(ClassHourAdjustDTO dto);
+
+    /**
+     * 批量课时调整
+     *
+     * @param dto 批量调整DTO
+     * @return 调整结果（账户ID -> 是否成功）
+     */
+    Map<Long, Boolean> batchAdjustClassHour(ClassHourBatchAdjustDTO dto);
 
     /**
      * 赠送课时

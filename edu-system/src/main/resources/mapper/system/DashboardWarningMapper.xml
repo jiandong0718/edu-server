@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.system.mapper.DashboardWarningMapper">
+
+    <!-- 课时不足预警 -->
+    <select id="getCourseHourLowWarnings" resultType="com.edu.system.domain.vo.WarningVO$CourseHourLowWarning">
+        SELECT
+            s.id AS studentId,
+            s.name AS studentName,
+            c.id AS courseId,
+            c.course_name AS courseName,
+            cha.remaining_hours AS remainingHours,
+            #{threshold} AS threshold,
+            sc.campus_name AS campusName
+        FROM fin_course_hour_account cha
+        INNER JOIN stu_student s ON cha.student_id = s.id
+        INNER JOIN tch_course c ON cha.course_id = c.id
+        LEFT JOIN sys_campus sc ON s.campus_id = sc.id
+        WHERE cha.remaining_hours &lt; #{threshold}
+          AND cha.remaining_hours &gt; 0
+          AND cha.deleted = 0
+          AND s.deleted = 0
+          AND c.deleted = 0
+          <if test="campusId != null">
+              AND s.campus_id = #{campusId}
+          </if>
+        ORDER BY cha.remaining_hours ASC
+    </select>
+
+    <!-- 课时即将到期预警 -->
+    <select id="getCourseHourExpireWarnings" resultType="com.edu.system.domain.vo.WarningVO$CourseHourExpireWarning">
+        SELECT
+            s.id AS studentId,
+            s.name AS studentName,
+            c.id AS courseId,
+            c.course_name AS courseName,
+            cha.expire_date AS expireDate,
+            DATEDIFF(cha.expire_date, CURDATE()) AS remainingDays,
+            cha.remaining_hours AS remainingHours,
+            sc.campus_name AS campusName
+        FROM fin_course_hour_account cha
+        INNER JOIN stu_student s ON cha.student_id = s.id
+        INNER JOIN tch_course c ON cha.course_id = c.id
+        LEFT JOIN sys_campus sc ON s.campus_id = sc.id
+        WHERE cha.expire_date IS NOT NULL
+          AND DATEDIFF(cha.expire_date, CURDATE()) &lt;= #{daysThreshold}
+          AND DATEDIFF(cha.expire_date, CURDATE()) &gt; 0
+          AND cha.remaining_hours &gt; 0
+          AND cha.deleted = 0
+          AND s.deleted = 0
+          AND c.deleted = 0
+          <if test="campusId != null">
+              AND s.campus_id = #{campusId}
+          </if>
+        ORDER BY remainingDays ASC
+    </select>
+
+    <!-- 欠费预警 -->
+    <select id="getOverdueWarnings" resultType="com.edu.system.domain.vo.WarningVO$OverdueWarning">
+        SELECT
+            ct.id AS contractId,
+            ct.contract_no AS contractNo,
+            s.id AS studentId,
+            s.name AS studentName,
+            (ct.total_amount - ct.paid_amount) AS overdueAmount,
+            DATEDIFF(CURDATE(), ct.payment_due_date) AS overdueDays,
+            ct.payment_due_date AS dueDate,
+            sc.campus_name AS campusName
+        FROM fin_contract ct
+        INNER JOIN stu_student s ON ct.student_id = s.id
+        LEFT JOIN sys_campus sc ON s.campus_id = sc.id
+        WHERE ct.payment_status = 'partial'
+          AND ct.payment_due_date IS NOT NULL
+          AND DATEDIFF(CURDATE(), ct.payment_due_date) &gt;= #{daysThreshold}
+          AND ct.deleted = 0
+          AND s.deleted = 0
+          <if test="campusId != null">
+              AND s.campus_id = #{campusId}
+          </if>
+        ORDER BY overdueDays DESC
+    </select>
+
+    <!-- 合同即将到期预警 -->
+    <select id="getContractExpireWarnings" resultType="com.edu.system.domain.vo.WarningVO$ContractExpireWarning">
+        SELECT
+            ct.id AS contractId,
+            ct.contract_no AS contractNo,
+            s.id AS studentId,
+            s.name AS studentName,
+            ct.end_date AS expireDate,
+            DATEDIFF(ct.end_date, CURDATE()) AS remainingDays,
+            sc.campus_name AS campusName
+        FROM fin_contract ct
+        INNER JOIN stu_student s ON ct.student_id = s.id
+        LEFT JOIN sys_campus sc ON s.campus_id = sc.id
+        WHERE ct.end_date IS NOT NULL
+          AND DATEDIFF(ct.end_date, CURDATE()) &lt;= #{daysThreshold}
+          AND DATEDIFF(ct.end_date, CURDATE()) &gt; 0
+          AND ct.status = 'active'
+          AND ct.deleted = 0
+          AND s.deleted = 0
+          <if test="campusId != null">
+              AND s.campus_id = #{campusId}
+          </if>
+        ORDER BY remainingDays ASC
+    </select>
+
+    <!-- 学员流失预警 -->
+    <select id="getStudentLossWarnings" resultType="com.edu.system.domain.vo.WarningVO$StudentLossWarning">
+        SELECT
+            s.id AS studentId,
+            s.name AS studentName,
+            MAX(att.attendance_date) AS lastAttendanceDate,
+            DATEDIFF(CURDATE(), MAX(att.attendance_date)) AS noAttendanceDays,
+            sc.campus_name AS campusName
+        FROM stu_student s
+        INNER JOIN tch_attendance att ON s.id = att.student_id
+        LEFT JOIN sys_campus sc ON s.campus_id = sc.id
+        WHERE s.status = 'enrolled'
+          AND s.deleted = 0
+          AND att.deleted = 0
+          <if test="campusId != null">
+              AND s.campus_id = #{campusId}
+          </if>
+        GROUP BY s.id, s.name, sc.campus_name
+        HAVING DATEDIFF(CURDATE(), MAX(att.attendance_date)) &gt;= #{daysThreshold}
+        ORDER BY noAttendanceDays DESC
+    </select>
+
+    <!-- 班级满员预警 -->
+    <select id="getClassFullWarnings" resultType="com.edu.system.domain.vo.WarningVO">
+        SELECT
+            CONCAT('class_full_', tc.id) AS warningId,
+            'class_full' AS warningType,
+            '班级满员预警' AS warningName,
+            CONCAT('班级 ', tc.class_name, ' 已满员，当前报名人数 ', COUNT(tcs.id), '，班级容量 ', tc.capacity) AS description,
+            tc.id AS businessId,
+            tc.class_name AS businessName,
+            tc.campus_id AS campusId,
+            sc.campus_name AS campusName,
+            CAST(COUNT(tcs.id) AS CHAR) AS currentValue,
+            CAST(tc.capacity AS CHAR) AS thresholdValue
+        FROM tch_class tc
+        INNER JOIN tch_class_student tcs ON tc.id = tcs.class_id
+        LEFT JOIN sys_campus sc ON tc.campus_id = sc.id
+        WHERE tc.status = 'ongoing'
+          AND tc.deleted = 0
+          AND tcs.deleted = 0
+          <if test="campusId != null">
+              AND tc.campus_id = #{campusId}
+          </if>
+        GROUP BY tc.id, tc.class_name, tc.capacity, tc.campus_id, sc.campus_name
+        HAVING COUNT(tcs.id) &gt;= tc.capacity
+    </select>
+
+    <!-- 教师排课冲突预警 -->
+    <select id="getTeacherScheduleConflictWarnings" resultType="com.edu.system.domain.vo.WarningVO">
+        SELECT
+            CONCAT('schedule_conflict_', t.id, '_', DATE(s1.start_time)) AS warningId,
+            'schedule_conflict' AS warningType,
+            '教师排课冲突预警' AS warningName,
+            CONCAT('教师 ', t.teacher_name, ' 在 ', DATE(s1.start_time), ' ', TIME(s1.start_time), ' 存在排课冲突') AS description,
+            t.id AS businessId,
+            t.teacher_name AS businessName,
+            t.campus_id AS campusId,
+            sc.campus_name AS campusName,
+            CAST(COUNT(DISTINCT s1.id) AS CHAR) AS currentValue,
+            '1' AS thresholdValue
+        FROM tch_schedule s1
+        INNER JOIN tch_schedule s2 ON s1.teacher_id = s2.teacher_id
+            AND s1.id != s2.id
+            AND s1.schedule_date = s2.schedule_date
+            AND (
+                (s1.start_time &lt; s2.end_time AND s1.end_time &gt; s2.start_time)
+            )
+        INNER JOIN tch_teacher t ON s1.teacher_id = t.id
+        LEFT JOIN sys_campus sc ON t.campus_id = sc.id
+        WHERE s1.status IN ('scheduled', 'ongoing')
+          AND s2.status IN ('scheduled', 'ongoing')
+          AND s1.deleted = 0
+          AND s2.deleted = 0
+          AND t.deleted = 0
+          AND s1.schedule_date &gt;= CURDATE()
+          <if test="campusId != null">
+              AND t.campus_id = #{campusId}
+          </if>
+        GROUP BY t.id, t.teacher_name, DATE(s1.start_time), t.campus_id, sc.campus_name
+    </select>
+
+    <!-- 教室使用冲突预警 -->
+    <select id="getClassroomConflictWarnings" resultType="com.edu.system.domain.vo.WarningVO">
+        SELECT
+            CONCAT('classroom_conflict_', cr.id, '_', DATE(s1.start_time)) AS warningId,
+            'classroom_conflict' AS warningType,
+            '教室使用冲突预警' AS warningName,
+            CONCAT('教室 ', cr.classroom_name, ' 在 ', DATE(s1.start_time), ' ', TIME(s1.start_time), ' 存在使用冲突') AS description,
+            cr.id AS businessId,
+            cr.classroom_name AS businessName,
+            cr.campus_id AS campusId,
+            sc.campus_name AS campusName,
+            CAST(COUNT(DISTINCT s1.id) AS CHAR) AS currentValue,
+            '1' AS thresholdValue
+        FROM tch_schedule s1
+        INNER JOIN tch_schedule s2 ON s1.classroom_id = s2.classroom_id
+            AND s1.id != s2.id
+            AND s1.schedule_date = s2.schedule_date
+            AND (
+                (s1.start_time &lt; s2.end_time AND s1.end_time &gt; s2.start_time)
+            )
+        INNER JOIN sys_classroom cr ON s1.classroom_id = cr.id
+        LEFT JOIN sys_campus sc ON cr.campus_id = sc.id
+        WHERE s1.status IN ('scheduled', 'ongoing')
+          AND s2.status IN ('scheduled', 'ongoing')
+          AND s1.deleted = 0
+          AND s2.deleted = 0
+          AND cr.deleted = 0
+          AND s1.schedule_date &gt;= CURDATE()
+          <if test="campusId != null">
+              AND cr.campus_id = #{campusId}
+          </if>
+        GROUP BY cr.id, cr.classroom_name, DATE(s1.start_time), cr.campus_id, sc.campus_name
+    </select>
+
+    <!-- 试听转化率低预警 -->
+    <select id="getTrialConversionLowWarnings" resultType="com.edu.system.domain.vo.WarningVO">
+        SELECT
+            CONCAT('trial_conversion_low_', sc.id) AS warningId,
+            'trial_conversion_low' AS warningType,
+            '试听转化率低预警' AS warningName,
+            CONCAT('校区 ', sc.campus_name, ' 本月试听转化率仅 ',
+                   ROUND(IFNULL(SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(l.id), 0), 0), 2),
+                   '%，低于阈值 ', #{rateThreshold} * 100, '%') AS description,
+            sc.id AS businessId,
+            sc.campus_name AS businessName,
+            sc.id AS campusId,
+            sc.campus_name AS campusName,
+            CONCAT(ROUND(IFNULL(SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(l.id), 0), 0), 2), '%') AS currentValue,
+            CONCAT(#{rateThreshold} * 100, '%') AS thresholdValue
+        FROM sys_campus sc
+        LEFT JOIN mkt_lead l ON sc.id = l.campus_id
+            AND l.lead_type = 'trial'
+            AND DATE_FORMAT(l.create_time, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+            AND l.deleted = 0
+        WHERE sc.deleted = 0
+          <if test="campusId != null">
+              AND sc.id = #{campusId}
+          </if>
+        GROUP BY sc.id, sc.campus_name
+        HAVING COUNT(l.id) &gt; 0
+           AND IFNULL(SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(l.id), 0), 0) &lt; #{rateThreshold}
+    </select>
+
+    <!-- 收入异常预警 -->
+    <select id="getIncomeAbnormalWarnings" resultType="com.edu.system.domain.vo.WarningVO">
+        SELECT
+            CONCAT('income_abnormal_', sc.id) AS warningId,
+            'income_abnormal' AS warningType,
+            '收入异常预警' AS warningName,
+            CONCAT('校区 ', sc.campus_name, ' 本月收入 ',
+                   ROUND(IFNULL(current_month.income, 0), 2), ' 元，',
+                   '低于上月收入 ', ROUND(IFNULL(last_month.income, 0), 2), ' 元的 ', #{rateThreshold} * 100, '%') AS description,
+            sc.id AS businessId,
+            sc.campus_name AS businessName,
+            sc.id AS campusId,
+            sc.campus_name AS campusName,
+            CONCAT(ROUND(IFNULL(current_month.income, 0), 2), '元') AS currentValue,
+            CONCAT(ROUND(IFNULL(last_month.income, 0) * #{rateThreshold}, 2), '元') AS thresholdValue
+        FROM sys_campus sc
+        LEFT JOIN (
+            SELECT
+                s.campus_id,
+                SUM(p.amount) AS income
+            FROM fin_payment p
+            INNER JOIN fin_contract ct ON p.contract_id = ct.id
+            INNER JOIN stu_student s ON ct.student_id = s.id
+            WHERE DATE_FORMAT(p.payment_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+              AND p.payment_type = 'income'
+              AND p.deleted = 0
+              AND ct.deleted = 0
+              AND s.deleted = 0
+            GROUP BY s.campus_id
+        ) current_month ON sc.id = current_month.campus_id
+        LEFT JOIN (
+            SELECT
+                s.campus_id,
+                SUM(p.amount) AS income
+            FROM fin_payment p
+            INNER JOIN fin_contract ct ON p.contract_id = ct.id
+            INNER JOIN stu_student s ON ct.student_id = s.id
+            WHERE DATE_FORMAT(p.payment_date, '%Y-%m') = DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+              AND p.payment_type = 'income'
+              AND p.deleted = 0
+              AND ct.deleted = 0
+              AND s.deleted = 0
+            GROUP BY s.campus_id
+        ) last_month ON sc.id = last_month.campus_id
+        WHERE sc.deleted = 0
+          AND last_month.income IS NOT NULL
+          AND last_month.income &gt; 0
+          AND IFNULL(current_month.income, 0) &lt; last_month.income * #{rateThreshold}
+          <if test="campusId != null">
+              AND sc.id = #{campusId}
+          </if>
+    </select>
+
+    <!-- 退费率高预警 -->
+    <select id="getRefundRateHighWarnings" resultType="com.edu.system.domain.vo.WarningVO">
+        SELECT
+            CONCAT('refund_rate_high_', sc.id) AS warningId,
+            'refund_rate_high' AS warningType,
+            '退费率高预警' AS warningName,
+            CONCAT('校区 ', sc.campus_name, ' 本月退费率 ',
+                   ROUND(IFNULL(refund_data.refund_amount * 100.0 / NULLIF(income_data.income_amount, 0), 0), 2),
+                   '%，高于阈值 ', #{rateThreshold} * 100, '%') AS description,
+            sc.id AS businessId,
+            sc.campus_name AS businessName,
+            sc.id AS campusId,
+            sc.campus_name AS campusName,
+            CONCAT(ROUND(IFNULL(refund_data.refund_amount * 100.0 / NULLIF(income_data.income_amount, 0), 0), 2), '%') AS currentValue,
+            CONCAT(#{rateThreshold} * 100, '%') AS thresholdValue
+        FROM sys_campus sc
+        LEFT JOIN (
+            SELECT
+                s.campus_id,
+                SUM(p.amount) AS refund_amount
+            FROM fin_payment p
+            INNER JOIN fin_contract ct ON p.contract_id = ct.id
+            INNER JOIN stu_student s ON ct.student_id = s.id
+            WHERE DATE_FORMAT(p.payment_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+              AND p.payment_type = 'refund'
+              AND p.deleted = 0
+              AND ct.deleted = 0
+              AND s.deleted = 0
+            GROUP BY s.campus_id
+        ) refund_data ON sc.id = refund_data.campus_id
+        LEFT JOIN (
+            SELECT
+                s.campus_id,
+                SUM(p.amount) AS income_amount
+            FROM fin_payment p
+            INNER JOIN fin_contract ct ON p.contract_id = ct.id
+            INNER JOIN stu_student s ON ct.student_id = s.id
+            WHERE DATE_FORMAT(p.payment_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+              AND p.payment_type = 'income'
+              AND p.deleted = 0
+              AND ct.deleted = 0
+              AND s.deleted = 0
+            GROUP BY s.campus_id
+        ) income_data ON sc.id = income_data.campus_id
+        WHERE sc.deleted = 0
+          AND income_data.income_amount IS NOT NULL
+          AND income_data.income_amount &gt; 0
+          AND IFNULL(refund_data.refund_amount * 1.0 / NULLIF(income_data.income_amount, 0), 0) &gt; #{rateThreshold}
+          <if test="campusId != null">
+              AND sc.id = #{campusId}
+          </if>
+    </select>
+
+</mapper>

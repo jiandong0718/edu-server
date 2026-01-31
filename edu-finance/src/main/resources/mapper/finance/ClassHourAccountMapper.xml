@@ -71,4 +71,284 @@
         GROUP BY a.campus_id, ca.name
     </select>
 
+    <!-- 查询学员课时余额 -->
+    <select id="getBalanceByStudent" resultType="com.edu.finance.domain.vo.ClassHourBalanceVO">
+        SELECT
+            a.id as accountId,
+            a.student_id as studentId,
+            s.name as studentName,
+            a.course_id as courseId,
+            c.name as courseName,
+            a.total_hours as totalHours,
+            a.used_hours as usedHours,
+            a.remaining_hours as remainingHours,
+            a.gift_hours as giftHours,
+            0 as frozenHours,
+            a.remaining_hours as availableHours,
+            a.status as status,
+            CASE a.status
+                WHEN 'active' THEN '正常'
+                WHEN 'frozen' THEN '冻结'
+                WHEN 'exhausted' THEN '已用完'
+                ELSE '未知'
+            END as statusDesc,
+            CASE
+                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN true
+                ELSE false
+            END as isWarning,
+            CASE
+                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN '课时余额不足'
+                ELSE NULL
+            END as warningReason,
+            a.create_time as createTime,
+            a.update_time as updateTime
+        FROM fin_class_hour_account a
+        LEFT JOIN stu_student s ON a.student_id = s.id
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        WHERE a.deleted = 0
+          AND a.student_id = #{studentId}
+        ORDER BY a.create_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询账户详情 -->
+    <select id="getBalanceDetail" resultType="com.edu.finance.domain.vo.ClassHourBalanceVO">
+        SELECT
+            a.id as accountId,
+            a.student_id as studentId,
+            s.name as studentName,
+            a.course_id as courseId,
+            c.name as courseName,
+            a.total_hours as totalHours,
+            a.used_hours as usedHours,
+            a.remaining_hours as remainingHours,
+            a.gift_hours as giftHours,
+            0 as frozenHours,
+            a.remaining_hours as availableHours,
+            a.status as status,
+            CASE a.status
+                WHEN 'active' THEN '正常'
+                WHEN 'frozen' THEN '冻结'
+                WHEN 'exhausted' THEN '已用完'
+                ELSE '未知'
+            END as statusDesc,
+            CASE
+                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN true
+                ELSE false
+            END as isWarning,
+            CASE
+                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN '课时余额不足'
+                ELSE NULL
+            END as warningReason,
+            a.create_time as createTime,
+            a.update_time as updateTime
+        FROM fin_class_hour_account a
+        LEFT JOIN stu_student s ON a.student_id = s.id
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        WHERE a.deleted = 0
+          AND a.id = #{accountId}
+    </select>
+
+    <!-- 分页查询课时余额 -->
+    <select id="pageBalance" resultType="com.edu.finance.domain.vo.ClassHourBalanceVO">
+        SELECT
+            a.id as accountId,
+            a.student_id as studentId,
+            s.name as studentName,
+            a.course_id as courseId,
+            c.name as courseName,
+            a.total_hours as totalHours,
+            a.used_hours as usedHours,
+            a.remaining_hours as remainingHours,
+            a.gift_hours as giftHours,
+            0 as frozenHours,
+            a.remaining_hours as availableHours,
+            a.status as status,
+            CASE a.status
+                WHEN 'active' THEN '正常'
+                WHEN 'frozen' THEN '冻结'
+                WHEN 'exhausted' THEN '已用完'
+                ELSE '未知'
+            END as statusDesc,
+            CASE
+                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN true
+                ELSE false
+            END as isWarning,
+            CASE
+                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN '课时余额不足'
+                ELSE NULL
+            END as warningReason,
+            a.create_time as createTime,
+            a.update_time as updateTime
+        FROM fin_class_hour_account a
+        LEFT JOIN stu_student s ON a.student_id = s.id
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        WHERE a.deleted = 0
+        <if test="query.studentId != null">
+            AND a.student_id = #{query.studentId}
+        </if>
+        <if test="query.courseId != null">
+            AND a.course_id = #{query.courseId}
+        </if>
+        <if test="query.campusId != null">
+            AND a.campus_id = #{query.campusId}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND a.status = #{query.status}
+        </if>
+        ORDER BY a.create_time DESC
+    </select>
+
+    <!-- 查询预警列表 -->
+    <select id="getWarningList" resultType="com.edu.finance.domain.vo.ClassHourWarningVO">
+        SELECT
+            a.id as accountId,
+            a.student_id as studentId,
+            s.name as studentName,
+            a.course_id as courseId,
+            c.name as courseName,
+            a.campus_id as campusId,
+            ca.name as campusName,
+            a.total_hours as totalHours,
+            a.used_hours as usedHours,
+            a.remaining_hours as remainingHours,
+            0 as frozenHours,
+            NULL as expiryDate,
+            NULL as daysToExpiry,
+            CASE
+                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'low_balance'
+                ELSE NULL
+            END as warningType,
+            CASE
+                WHEN a.remaining_hours <= 2 THEN 'urgent'
+                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'warning'
+                ELSE 'normal'
+            END as warningLevel,
+            CASE
+                WHEN a.remaining_hours <= 2 THEN CONCAT('课时严重不足，仅剩', a.remaining_hours, '课时')
+                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN CONCAT('课时余额不足，剩余', a.remaining_hours, '课时')
+                ELSE NULL
+            END as warningMessage,
+            a.create_time as createTime
+        FROM fin_class_hour_account a
+        LEFT JOIN stu_student s ON a.student_id = s.id
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        LEFT JOIN sys_campus ca ON a.campus_id = ca.id
+        WHERE a.deleted = 0
+          AND a.status = 'active'
+          AND a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5)
+        <if test="query.studentId != null">
+            AND a.student_id = #{query.studentId}
+        </if>
+        <if test="query.courseId != null">
+            AND a.course_id = #{query.courseId}
+        </if>
+        <if test="query.campusId != null">
+            AND a.campus_id = #{query.campusId}
+        </if>
+        <if test="query.warningLevel != null and query.warningLevel != ''">
+            AND CASE
+                WHEN a.remaining_hours <= 2 THEN 'urgent'
+                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'warning'
+                ELSE 'normal'
+            END = #{query.warningLevel}
+        </if>
+        ORDER BY a.remaining_hours ASC, a.create_time DESC
+    </select>
+
+    <!-- 课时汇总统计 -->
+    <select id="getSummary" resultType="com.edu.finance.domain.vo.ClassHourSummaryVO">
+        SELECT
+            COUNT(*) as totalAccounts,
+            COUNT(CASE WHEN status = 'active' THEN 1 END) as activeAccounts,
+            COUNT(CASE WHEN status = 'frozen' THEN 1 END) as frozenAccounts,
+            COUNT(CASE WHEN status = 'exhausted' THEN 1 END) as exhaustedAccounts,
+            COALESCE(SUM(total_hours), 0) as totalHours,
+            COALESCE(SUM(used_hours), 0) as usedHours,
+            COALESCE(SUM(remaining_hours), 0) as remainingHours,
+            COALESCE(SUM(gift_hours), 0) as giftHours,
+            0 as frozenHours,
+            CASE
+                WHEN SUM(total_hours) > 0 THEN ROUND(SUM(used_hours) / SUM(total_hours) * 100, 2)
+                ELSE 0
+            END as usageRate,
+            COUNT(CASE WHEN status = 'active' AND remaining_hours <= 5 THEN 1 END) as warningAccounts,
+            COUNT(CASE WHEN status = 'active' AND remaining_hours <= 5 THEN 1 END) as lowBalanceWarnings,
+            0 as expiringWarnings,
+            0 as expiredWarnings
+        FROM fin_class_hour_account
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <!-- 按课程统计 -->
+    <select id="statisticsListByCourse" resultMap="StatisticsResult">
+        SELECT
+            'course' as dimension,
+            a.course_id as dimension_id,
+            c.name as dimension_name,
+            COUNT(a.id) as account_count,
+            COALESCE(SUM(a.total_hours), 0) as total_hours,
+            COALESCE(SUM(a.used_hours), 0) as used_hours,
+            COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
+            COALESCE(SUM(a.gift_hours), 0) as gift_hours,
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+        FROM fin_class_hour_account a
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        WHERE a.deleted = 0
+        <if test="campusId != null">
+            AND a.campus_id = #{campusId}
+        </if>
+        GROUP BY a.course_id, c.name
+        ORDER BY total_hours DESC
+    </select>
+
+    <!-- 按学员统计 -->
+    <select id="statisticsListByStudent" resultMap="StatisticsResult">
+        SELECT
+            'student' as dimension,
+            a.student_id as dimension_id,
+            s.name as dimension_name,
+            COUNT(a.id) as account_count,
+            COALESCE(SUM(a.total_hours), 0) as total_hours,
+            COALESCE(SUM(a.used_hours), 0) as used_hours,
+            COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
+            COALESCE(SUM(a.gift_hours), 0) as gift_hours,
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+        FROM fin_class_hour_account a
+        LEFT JOIN stu_student s ON a.student_id = s.id
+        WHERE a.deleted = 0
+        <if test="campusId != null">
+            AND a.campus_id = #{campusId}
+        </if>
+        GROUP BY a.student_id, s.name
+        ORDER BY total_hours DESC
+    </select>
+
+    <!-- 消课统计 -->
+    <select id="statisticsConsumption" resultType="com.edu.finance.domain.vo.ClassHourConsumptionVO">
+        SELECT
+            DATE_FORMAT(r.create_time, '%Y-%m-%d') as statisticsDate,
+            COUNT(*) as consumptionCount,
+            COALESCE(SUM(ABS(r.hours)), 0) as consumptionHours,
+            COUNT(DISTINCT r.student_id) as studentCount,
+            COUNT(DISTINCT a.course_id) as courseCount,
+            CASE
+                WHEN COUNT(*) > 0 THEN ROUND(SUM(ABS(r.hours)) / COUNT(*), 2)
+                ELSE 0
+            END as avgHoursPerConsumption
+        FROM fin_class_hour_record r
+        LEFT JOIN fin_class_hour_account a ON r.account_id = a.id
+        WHERE r.deleted = 0
+          AND r.type = 'consume'
+          AND DATE(r.create_time) BETWEEN #{startDate} AND #{endDate}
+        <if test="campusId != null">
+            AND a.campus_id = #{campusId}
+        </if>
+        GROUP BY DATE_FORMAT(r.create_time, '%Y-%m-%d')
+        ORDER BY statisticsDate DESC
+    </select>
+
 </mapper>
