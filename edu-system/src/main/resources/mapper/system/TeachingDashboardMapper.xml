@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.system.mapper.TeachingDashboardMapper">
+
+    <!-- 获取教学数据概览 -->
+    <select id="getOverviewStats" resultType="com.edu.system.domain.vo.TeachingDashboardVO$Overview">
+        SELECT
+            (SELECT COUNT(*) FROM stu_student WHERE deleted = 0 AND status = 'enrolled'
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as activeStudentCount,
+            (SELECT COUNT(*) FROM stu_student WHERE deleted = 0 AND status = 'trial'
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as trialStudentCount,
+            (SELECT COUNT(*) FROM stu_student WHERE deleted = 0 AND status = 'potential'
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as potentialStudentCount,
+            (SELECT COUNT(*) FROM tch_class WHERE deleted = 0
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as totalClassCount,
+            (SELECT COUNT(*) FROM tch_class WHERE deleted = 0 AND status = 'ongoing'
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as ongoingClassCount,
+            (SELECT COUNT(*) FROM tch_class WHERE deleted = 0 AND current_students >= capacity
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as fullClassCount,
+            (SELECT COUNT(*) FROM tch_teacher WHERE deleted = 0
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as totalTeacherCount,
+            (SELECT COUNT(*) FROM tch_teacher WHERE deleted = 0 AND teacher_type = 'full_time'
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as fullTimeTeacherCount,
+            (SELECT COUNT(*) FROM tch_teacher WHERE deleted = 0 AND teacher_type = 'part_time'
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ) as partTimeTeacherCount,
+            (SELECT
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2)
+                END
+            FROM tch_attendance a
+            INNER JOIN tch_schedule s ON a.schedule_id = s.id
+            WHERE a.deleted = 0
+                AND s.schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                <if test="campusId != null">AND s.campus_id = #{campusId}</if>
+            ) as averageAttendanceRate,
+            (SELECT
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(SUM(CASE WHEN s.status = 'completed' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2)
+                END
+            FROM tch_schedule s
+            WHERE s.deleted = 0
+                AND s.schedule_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                <if test="campusId != null">AND s.campus_id = #{campusId}</if>
+            ) as averageCompletionRate,
+            (SELECT
+                CASE
+                    WHEN COUNT(DISTINCT c1.student_id) = 0 THEN 0
+                    ELSE ROUND(COUNT(DISTINCT c2.student_id) * 100.0 / COUNT(DISTINCT c1.student_id), 2)
+                END
+            FROM fin_contract c1
+            LEFT JOIN fin_contract c2 ON c1.student_id = c2.student_id
+                AND c2.contract_type = 'renewal'
+                AND c2.create_time >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+            WHERE c1.deleted = 0
+                AND c1.expire_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                AND c1.expire_date < CURDATE()
+                <if test="campusId != null">AND c1.campus_id = #{campusId}</if>
+            ) as renewalRate
+    </select>
+
+    <!-- 获取考勤率趋势 -->
+    <select id="getAttendanceRateTrend" resultType="com.edu.system.domain.vo.TeachingDashboardVO$AttendanceRateItem">
+        SELECT
+            DATE(s.schedule_date) as date,
+            ROUND(
+                CASE
+                    WHEN COUNT(a.id) = 0 THEN 0
+                    ELSE SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100.0 / COUNT(a.id)
+                END,
+                2
+            ) as rate,
+            COUNT(a.id) as expectedCount,
+            SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) as actualCount
+        FROM tch_schedule s
+        LEFT JOIN tch_attendance a ON s.id = a.schedule_id AND a.deleted = 0
+        WHERE s.deleted = 0
+            AND s.schedule_date BETWEEN #{startDate} AND #{endDate}
+            AND s.status != 'cancelled'
+            <if test="campusId != null">
+                AND s.campus_id = #{campusId}
+            </if>
+        GROUP BY DATE(s.schedule_date)
+        ORDER BY date
+    </select>
+
+    <!-- 获取班级统计 -->
+    <select id="getClassStats" resultType="com.edu.system.domain.vo.TeachingDashboardVO$ClassStatsItem">
+        SELECT
+            c.id as classId,
+            c.class_name as className,
+            co.course_name as courseName,
+            c.status,
+            CASE c.status
+                WHEN 'pending' THEN '待开班'
+                WHEN 'ongoing' THEN '进行中'
+                WHEN 'completed' THEN '已结业'
+                WHEN 'suspended' THEN '已暂停'
+                ELSE '未知'
+            END as statusName,
+            c.current_students as studentCount,
+            c.capacity,
+            ROUND(
+                CASE
+                    WHEN COUNT(a.id) = 0 THEN 0
+                    ELSE SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100.0 / COUNT(a.id)
+                END,
+                2
+            ) as attendanceRate,
+            (SELECT COUNT(*) FROM tch_schedule WHERE class_id = c.id AND deleted = 0 AND status = 'completed') as completedLessons,
+            c.total_lessons as totalLessons
+        FROM tch_class c
+        LEFT JOIN tch_course co ON c.course_id = co.id
+        LEFT JOIN tch_schedule s ON c.id = s.class_id AND s.deleted = 0
+        LEFT JOIN tch_attendance a ON s.id = a.schedule_id AND a.deleted = 0
+        WHERE c.deleted = 0
+            <if test="campusId != null">
+                AND c.campus_id = #{campusId}
+            </if>
+            <if test="status != null and status != ''">
+                AND c.status = #{status}
+            </if>
+        GROUP BY c.id, c.class_name, co.course_name, c.status, c.current_students, c.capacity, c.total_lessons
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 获取教师统计 -->
+    <select id="getTeacherStats" resultType="com.edu.system.domain.vo.TeachingDashboardVO$TeacherStatsItem">
+        SELECT
+            t.id as teacherId,
+            t.teacher_name as teacherName,
+            t.teacher_type as teacherType,
+            CASE t.teacher_type
+                WHEN 'full_time' THEN '全职'
+                WHEN 'part_time' THEN '兼职'
+                ELSE '未知'
+            END as teacherTypeName,
+            COUNT(DISTINCT c.id) as classCount,
+            (SELECT COUNT(*)
+             FROM tch_schedule
+             WHERE teacher_id = t.id
+                AND deleted = 0
+                AND schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                AND schedule_date <= CURDATE()
+                AND status != 'cancelled'
+            ) as weekScheduleCount,
+            (SELECT COUNT(*)
+             FROM tch_schedule
+             WHERE teacher_id = t.id
+                AND deleted = 0
+                AND DATE_FORMAT(schedule_date, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+                AND status != 'cancelled'
+            ) as monthScheduleCount,
+            (SELECT SUM(current_students)
+             FROM tch_class
+             WHERE id IN (SELECT DISTINCT class_id FROM tch_schedule WHERE teacher_id = t.id AND deleted = 0)
+                AND deleted = 0
+            ) as studentCount,
+            ROUND(
+                CASE
+                    WHEN COUNT(a.id) = 0 THEN 0
+                    ELSE SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100.0 / COUNT(a.id)
+                END,
+                2
+            ) as averageAttendanceRate
+        FROM tch_teacher t
+        LEFT JOIN tch_schedule s ON t.id = s.teacher_id AND s.deleted = 0
+        LEFT JOIN tch_class c ON s.class_id = c.id AND c.deleted = 0
+        LEFT JOIN tch_attendance a ON s.id = a.schedule_id AND a.deleted = 0
+        WHERE t.deleted = 0
+            AND t.status = 'active'
+            <if test="campusId != null">
+                AND t.campus_id = #{campusId}
+            </if>
+        GROUP BY t.id, t.teacher_name, t.teacher_type
+        ORDER BY monthScheduleCount DESC, classCount DESC
+    </select>
+
+    <!-- 获取课程消耗统计 -->
+    <select id="getCourseConsumption" resultType="com.edu.system.domain.vo.TeachingDashboardVO$CourseConsumptionItem">
+        SELECT
+            co.id as courseId,
+            co.course_name as courseName,
+            COALESCE(SUM(cha.total_hours), 0) as totalHours,
+            COALESCE(SUM(cha.used_hours), 0) as consumedHours,
+            COALESCE(SUM(cha.remaining_hours), 0) as remainingHours,
+            ROUND(
+                CASE
+                    WHEN SUM(cha.total_hours) = 0 THEN 0
+                    ELSE SUM(cha.used_hours) * 100.0 / SUM(cha.total_hours)
+                END,
+                2
+            ) as consumptionRate,
+            COUNT(DISTINCT cha.student_id) as studentCount,
+            COUNT(DISTINCT c.id) as classCount
+        FROM tch_course co
+        LEFT JOIN tch_class c ON co.id = c.course_id AND c.deleted = 0
+        LEFT JOIN fin_course_hour_account cha ON co.id = cha.course_id AND cha.deleted = 0
+        WHERE co.deleted = 0
+            AND co.status = 'active'
+            <if test="campusId != null">
+                AND co.campus_id = #{campusId}
+            </if>
+        GROUP BY co.id, co.course_name
+        HAVING totalHours > 0
+        ORDER BY consumptionRate DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 获取班级状态分布 -->
+    <select id="getClassStatusDistribution" resultType="com.edu.system.domain.vo.TeachingDashboardVO$ClassStatusDistribution">
+        SELECT
+            status,
+            CASE status
+                WHEN 'pending' THEN '待开班'
+                WHEN 'ongoing' THEN '进行中'
+                WHEN 'completed' THEN '已结业'
+                WHEN 'suspended' THEN '已暂停'
+                ELSE '未知'
+            END as statusName,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM tch_class WHERE deleted = 0
+                <if test="campusId != null">AND campus_id = #{campusId}</if>
+            ), 2) as percentage
+        FROM tch_class
+        WHERE deleted = 0
+            <if test="campusId != null">
+                AND campus_id = #{campusId}
+            </if>
+        GROUP BY status
+        ORDER BY count DESC
+    </select>
+
+</mapper>

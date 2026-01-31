@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.system.mapper.EnrollmentDashboardMapper">
+
+    <!-- 统计时间范围内的新增线索数 -->
+    <select id="countNewLeads" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_lead
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内待跟进线索数 -->
+    <select id="countPendingLeads" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_lead
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status = 'following'
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内已转化线索数 -->
+    <select id="countConvertedLeads" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_lead
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status = 'converted'
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内的试听总数 -->
+    <select id="countTrialsByDateRange" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内已预约试听数 -->
+    <select id="countScheduledTrials" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status IN ('scheduled', 'completed', 'converted')
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内已完成试听数 -->
+    <select id="countCompletedTrials" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status IN ('completed', 'converted')
+        AND DATE(trial_date) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内试听转化数 -->
+    <select id="countTrialConversions" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status = 'converted'
+        AND DATE(trial_date) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内的成交数 -->
+    <select id="countDeals" resultType="int">
+        SELECT COUNT(*)
+        FROM fin_contract
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status IN ('active', 'completed')
+        AND DATE(sign_date) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 统计时间范围内的成交金额 -->
+    <select id="sumDealAmount" resultType="map">
+        SELECT COALESCE(SUM(total_amount), 0) as amount
+        FROM fin_contract
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status IN ('active', 'completed')
+        AND DATE(sign_date) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 获取线索趋势（按日期） -->
+    <select id="getLeadTrendByDate" resultType="map">
+        SELECT
+            DATE_FORMAT(create_time, '%Y-%m-%d') as date,
+            COUNT(*) as count
+        FROM mkt_lead
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(create_time)
+        ORDER BY date
+    </select>
+
+    <!-- 获取试听趋势（按日期） -->
+    <select id="getTrialTrendByDate" resultType="map">
+        SELECT
+            DATE_FORMAT(trial_date, '%Y-%m-%d') as date,
+            COUNT(*) as count
+        FROM mkt_trial_lesson
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND trial_date IS NOT NULL
+        AND DATE(trial_date) BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(trial_date)
+        ORDER BY date
+    </select>
+
+    <!-- 获取成交趋势（按日期） -->
+    <select id="getDealTrendByDate" resultType="map">
+        SELECT
+            DATE_FORMAT(sign_date, '%Y-%m-%d') as date,
+            COUNT(*) as count
+        FROM fin_contract
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND status IN ('active', 'completed')
+        AND DATE(sign_date) BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(sign_date)
+        ORDER BY date
+    </select>
+
+    <!-- 获取转化漏斗数据 -->
+    <select id="getFunnelData" resultType="map">
+        SELECT
+            (SELECT COUNT(*) FROM mkt_lead
+             WHERE deleted = 0
+             <if test="campusId != null">AND campus_id = #{campusId}</if>
+             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}) as new_leads,
+
+            (SELECT COUNT(*) FROM mkt_lead
+             WHERE deleted = 0
+             <if test="campusId != null">AND campus_id = #{campusId}</if>
+             AND status = 'following'
+             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}) as following,
+
+            (SELECT COUNT(*) FROM mkt_trial_lesson
+             WHERE deleted = 0
+             <if test="campusId != null">AND campus_id = #{campusId}</if>
+             AND status IN ('scheduled', 'completed', 'converted')
+             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}) as scheduled,
+
+            (SELECT COUNT(*) FROM mkt_trial_lesson
+             WHERE deleted = 0
+             <if test="campusId != null">AND campus_id = #{campusId}</if>
+             AND status IN ('completed', 'converted')
+             AND trial_date IS NOT NULL
+             AND DATE(trial_date) BETWEEN #{startDate} AND #{endDate}) as completed,
+
+            (SELECT COUNT(*) FROM fin_contract
+             WHERE deleted = 0
+             <if test="campusId != null">AND campus_id = #{campusId}</if>
+             AND status IN ('active', 'completed')
+             AND DATE(sign_date) BETWEEN #{startDate} AND #{endDate}) as deals
+    </select>
+
+    <!-- 获取线索来源分布 -->
+    <select id="getLeadSourceDistributionByDateRange" resultType="map">
+        SELECT
+            COALESCE(source, '未知') as source,
+            COUNT(*) as count
+        FROM mkt_lead
+        WHERE deleted = 0
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+        GROUP BY source
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取顾问业绩排行 -->
+    <select id="getAdvisorPerformanceRanking" resultType="map">
+        SELECT
+            u.id as advisor_id,
+            u.name as advisor_name,
+            COUNT(DISTINCT c.id) as deal_count,
+            COALESCE(SUM(c.total_amount), 0) as deal_amount,
+            COUNT(DISTINCT l.id) as lead_count
+        FROM sys_user u
+        LEFT JOIN mkt_lead l ON l.advisor_id = u.id
+            AND l.deleted = 0
+            <if test="campusId != null">AND l.campus_id = #{campusId}</if>
+            AND DATE(l.create_time) BETWEEN #{startDate} AND #{endDate}
+        LEFT JOIN fin_contract c ON c.student_id IN (
+            SELECT student_id FROM mkt_lead WHERE advisor_id = u.id AND deleted = 0
+        )
+            AND c.deleted = 0
+            <if test="campusId != null">AND c.campus_id = #{campusId}</if>
+            AND c.status IN ('active', 'completed')
+            AND DATE(c.sign_date) BETWEEN #{startDate} AND #{endDate}
+        WHERE u.deleted = 0
+        <if test="campusId != null">
+            AND u.campus_id = #{campusId}
+        </if>
+        GROUP BY u.id, u.name
+        HAVING deal_count > 0
+        ORDER BY deal_count DESC, deal_amount DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
