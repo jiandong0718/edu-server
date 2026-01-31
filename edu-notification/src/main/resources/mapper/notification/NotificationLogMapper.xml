@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.notification.mapper.NotificationLogMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="NotificationLogVOMap" type="com.edu.notification.domain.vo.NotificationLogVO">
+        <id property="id" column="id"/>
+        <result property="notificationId" column="notification_id"/>
+        <result property="type" column="type"/>
+        <result property="receiver" column="receiver"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="receiverId" column="receiver_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="status" column="status"/>
+        <result property="sendTime" column="send_time"/>
+        <result property="failReason" column="fail_reason"/>
+        <result property="retryCount" column="retry_count"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="bizType" column="biz_type"/>
+        <result property="bizId" column="biz_id"/>
+        <result property="templateCode" column="template_code"/>
+        <result property="thirdPartyId" column="third_party_id"/>
+        <result property="cost" column="cost"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 分页查询发送记录 -->
+    <select id="selectLogPage" resultMap="NotificationLogVOMap">
+        SELECT
+            l.id,
+            l.notification_id,
+            l.type,
+            l.receiver,
+            l.receiver_name,
+            l.receiver_id,
+            l.title,
+            l.content,
+            l.status,
+            l.send_time,
+            l.fail_reason,
+            l.retry_count,
+            l.campus_id,
+            c.name AS campus_name,
+            l.biz_type,
+            l.biz_id,
+            l.template_code,
+            l.third_party_id,
+            l.cost,
+            l.remark,
+            l.create_time,
+            l.update_time
+        FROM sys_notification_log l
+        LEFT JOIN sys_campus c ON l.campus_id = c.id AND c.deleted = 0
+        WHERE l.deleted = 0
+        <if test="query.type != null and query.type != ''">
+            AND l.type = #{query.type}
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND l.status = #{query.status}
+        </if>
+        <if test="query.receiver != null and query.receiver != ''">
+            AND (l.receiver LIKE CONCAT('%', #{query.receiver}, '%')
+                 OR l.receiver_name LIKE CONCAT('%', #{query.receiver}, '%'))
+        </if>
+        <if test="query.startDate != null">
+            AND l.send_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND l.send_time &lt;= #{query.endDate}
+        </if>
+        <if test="query.campusId != null">
+            AND l.campus_id = #{query.campusId}
+        </if>
+        <if test="query.bizType != null and query.bizType != ''">
+            AND l.biz_type = #{query.bizType}
+        </if>
+        <if test="query.templateCode != null and query.templateCode != ''">
+            AND l.template_code = #{query.templateCode}
+        </if>
+        ORDER BY l.send_time DESC, l.create_time DESC
+    </select>
+
+    <!-- 查询发送记录详情 -->
+    <select id="selectLogById" resultMap="NotificationLogVOMap">
+        SELECT
+            l.id,
+            l.notification_id,
+            l.type,
+            l.receiver,
+            l.receiver_name,
+            l.receiver_id,
+            l.title,
+            l.content,
+            l.status,
+            l.send_time,
+            l.fail_reason,
+            l.retry_count,
+            l.campus_id,
+            c.name AS campus_name,
+            l.biz_type,
+            l.biz_id,
+            l.template_code,
+            l.third_party_id,
+            l.cost,
+            l.remark,
+            l.create_time,
+            l.update_time
+        FROM sys_notification_log l
+        LEFT JOIN sys_campus c ON l.campus_id = c.id AND c.deleted = 0
+        WHERE l.id = #{id} AND l.deleted = 0
+    </select>
+
+    <!-- 统计总数 -->
+    <select id="selectTotalStatistics" resultType="map">
+        SELECT
+            COUNT(*) AS total_count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
+            SUM(CASE WHEN status = 'sending' THEN 1 ELSE 0 END) AS sending_count
+        FROM sys_notification_log
+        WHERE deleted = 0
+        <if test="startDate != null">
+            AND send_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND send_time &lt;= #{endDate}
+        </if>
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+    </select>
+
+    <!-- 按类型统计 -->
+    <select id="selectTypeStatistics" resultType="map">
+        SELECT
+            type,
+            COUNT(*) AS count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count
+        FROM sys_notification_log
+        WHERE deleted = 0
+        <if test="startDate != null">
+            AND send_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND send_time &lt;= #{endDate}
+        </if>
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        GROUP BY type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 按日期统计 -->
+    <select id="selectDateStatistics" resultType="map">
+        SELECT
+            DATE_FORMAT(send_time, '%Y-%m-%d') AS date,
+            COUNT(*) AS count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count
+        FROM sys_notification_log
+        WHERE deleted = 0
+        AND send_time IS NOT NULL
+        <if test="startDate != null">
+            AND send_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND send_time &lt;= #{endDate}
+        </if>
+        <if test="campusId != null">
+            AND campus_id = #{campusId}
+        </if>
+        GROUP BY DATE_FORMAT(send_time, '%Y-%m-%d')
+        ORDER BY date DESC
+    </select>
+
+</mapper>

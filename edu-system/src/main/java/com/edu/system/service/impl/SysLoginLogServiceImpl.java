@@ -1,8 +1,5 @@
 package com.edu.system.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.useragent.UserAgent;
-import cn.hutool.http.useragent.UserAgentUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.system.domain.entity.SysLoginLog;
 import com.edu.system.mapper.SysLoginLogMapper;

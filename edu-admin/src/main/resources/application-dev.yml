@@ -57,10 +57,36 @@ spring:
   # Flyway 配置
   flyway:
     enabled: true
+    # 基线版本配置
     baseline-on-migrate: true
+    baseline-version: 1.0.0
+    baseline-description: "Initial baseline"
+    # 迁移脚本位置
     locations: classpath:db/migration
+    # 元数据表名
     table: flyway_schema_history
+    # 验证配置
     validate-on-migrate: true
+    validate-migration-naming: true
+    # 允许乱序执行（开发环境允许）
+    out-of-order: true
+    # 占位符配置
+    placeholder-replacement: true
+    placeholders:
+      db_name: edu_admin
+      env: dev
+    # 编码配置
+    encoding: UTF-8
+    # SQL 迁移配置
+    sql-migration-prefix: V
+    sql-migration-separator: __
+    sql-migration-suffixes: .sql
+    # 清理配置（开发环境禁用，防止误删数据）
+    clean-disabled: true
+    # 忽略缺失的迁移脚本
+    ignore-missing-migrations: false
+    # 忽略未来的迁移脚本
+    ignore-future-migrations: false
 
 # 日志配置
 logging:
