@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.PaymentMapper">
+
+    <resultMap id="ArrearsResult" type="com.edu.finance.domain.vo.ArrearsVO">
+        <result property="contractId" column="contract_id"/>
+        <result property="contractNo" column="contract_no"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="studentPhone" column="student_phone"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="contractAmount" column="contract_amount"/>
+        <result property="paidAmount" column="paid_amount"/>
+        <result property="receivedAmount" column="received_amount"/>
+        <result property="arrearsAmount" column="arrears_amount"/>
+        <result property="signDate" column="sign_date"/>
+        <result property="effectiveDate" column="effective_date"/>
+        <result property="arrearsDays" column="arrears_days"/>
+        <result property="contractStatus" column="contract_status"/>
+        <result property="salesId" column="sales_id"/>
+        <result property="salesName" column="sales_name"/>
+        <result property="lastPaymentTime" column="last_payment_time"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="ArrearsRemindResult" type="com.edu.finance.domain.vo.ArrearsRemindVO">
+        <result property="contractId" column="contract_id"/>
+        <result property="contractNo" column="contract_no"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="studentPhone" column="student_phone"/>
+        <result property="campusId" column="campus_id"/>
+        <result property="campusName" column="campus_name"/>
+        <result property="arrearsAmount" column="arrears_amount"/>
+        <result property="arrearsDays" column="arrears_days"/>
+        <result property="remindLevel" column="remind_level"/>
+        <result property="salesId" column="sales_id"/>
+        <result property="salesName" column="sales_name"/>
+        <result property="signDate" column="sign_date"/>
+        <result property="effectiveDate" column="effective_date"/>
+    </resultMap>
+
+    <!-- 分页查询欠费记录 -->
+    <select id="selectArrearsPage" resultMap="ArrearsResult">
+        SELECT
+            c.id as contract_id,
+            c.contract_no,
+            c.student_id,
+            s.name as student_name,
+            s.phone as student_phone,
+            c.campus_id,
+            ca.name as campus_name,
+            c.amount as contract_amount,
+            c.paid_amount,
+            c.received_amount,
+            (c.paid_amount - c.received_amount) as arrears_amount,
+            c.sign_date,
+            c.effective_date,
+            DATEDIFF(CURDATE(), c.effective_date) as arrears_days,
+            c.status as contract_status,
+            c.sales_id,
+            u.real_name as sales_name,
+            (SELECT MAX(pay_time) FROM fin_payment WHERE contract_id = c.id AND status = 'paid' AND deleted = 0) as last_payment_time,
+            c.create_time
+        FROM fin_contract c
+        LEFT JOIN stu_student s ON c.student_id = s.id
+        LEFT JOIN sys_campus ca ON c.campus_id = ca.id
+        LEFT JOIN sys_user u ON c.sales_id = u.id
+        WHERE c.deleted = 0
+          AND c.paid_amount > c.received_amount
+          AND c.status IN ('signed', 'completed')
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.studentId != null">
+            AND c.student_id = #{query.studentId}
+        </if>
+        <if test="query.studentName != null and query.studentName != ''">
+            AND s.name LIKE CONCAT('%', #{query.studentName}, '%')
+        </if>
+        <if test="query.contractId != null">
+            AND c.id = #{query.contractId}
+        </if>
+        <if test="query.contractNo != null and query.contractNo != ''">
+            AND c.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
+        </if>
+        <if test="query.minArrearsAmount != null">
+            AND (c.paid_amount - c.received_amount) >= #{query.minArrearsAmount}
+        </if>
+        <if test="query.maxArrearsAmount != null">
+            AND (c.paid_amount - c.received_amount) &lt;= #{query.maxArrearsAmount}
+        </if>
+        <if test="query.minArrearsDays != null">
+            AND DATEDIFF(CURDATE(), c.effective_date) >= #{query.minArrearsDays}
+        </if>
+        <if test="query.maxArrearsDays != null">
+            AND DATEDIFF(CURDATE(), c.effective_date) &lt;= #{query.maxArrearsDays}
+        </if>
+        ORDER BY arrears_amount DESC, arrears_days DESC
+    </select>
+
+    <!-- 查询欠费统计 -->
+    <select id="selectArrearsStatistics" resultType="com.edu.finance.domain.vo.ArrearsStatisticsVO">
+        SELECT
+            COALESCE(SUM(c.paid_amount - c.received_amount), 0) as totalArrearsAmount,
+            COUNT(DISTINCT c.student_id) as arrearsStudentCount,
+            COUNT(c.id) as arrearsContractCount,
+            COALESCE(AVG(c.paid_amount - c.received_amount), 0) as avgArrearsAmount,
+            COALESCE(MAX(c.paid_amount - c.received_amount), 0) as maxArrearsAmount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 7 THEN 1 ELSE 0 END) as arrears7DaysCount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) > 7 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 15 THEN 1 ELSE 0 END) as arrears7To15DaysCount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) > 15 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN 1 ELSE 0 END) as arrears15To30DaysCount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) > 30 THEN 1 ELSE 0 END) as arrears30PlusDaysCount
+        FROM fin_contract c
+        WHERE c.deleted = 0
+          AND c.paid_amount > c.received_amount
+          AND c.status IN ('signed', 'completed')
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.studentId != null">
+            AND c.student_id = #{query.studentId}
+        </if>
+        <if test="query.contractId != null">
+            AND c.id = #{query.contractId}
+        </if>
+    </select>
+
+    <!-- 查询需要提醒的欠费记录 -->
+    <select id="selectArrearsRemind" resultMap="ArrearsRemindResult">
+        SELECT
+            c.id as contract_id,
+            c.contract_no,
+            c.student_id,
+            s.name as student_name,
+            s.phone as student_phone,
+            c.campus_id,
+            ca.name as campus_name,
+            (c.paid_amount - c.received_amount) as arrears_amount,
+            DATEDIFF(CURDATE(), c.effective_date) as arrears_days,
+            CASE
+                WHEN DATEDIFF(CURDATE(), c.effective_date) >= 30 THEN 'urgent'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) >= 15 THEN 'warning'
+                ELSE 'normal'
+            END as remind_level,
+            c.sales_id,
+            u.real_name as sales_name,
+            c.sign_date,
+            c.effective_date
+        FROM fin_contract c
+        LEFT JOIN stu_student s ON c.student_id = s.id
+        LEFT JOIN sys_campus ca ON c.campus_id = ca.id
+        LEFT JOIN sys_user u ON c.sales_id = u.id
+        WHERE c.deleted = 0
+          AND c.paid_amount > c.received_amount
+          AND c.status IN ('signed', 'completed')
+        <if test="minDays != null">
+            AND DATEDIFF(CURDATE(), c.effective_date) >= #{minDays}
+        </if>
+        ORDER BY arrears_days DESC, arrears_amount DESC
+    </select>
+
+</mapper>

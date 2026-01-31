@@ -78,8 +78,9 @@ public class LeaveRequestController {
     @Operation(summary = "审批请假申请")
     public Result<Void> approve(
             @Parameter(description = "请假申请ID") @PathVariable Long id,
-            @Parameter(description = "是否批准") @RequestParam boolean approved,
+            @Parameter(description = "审批状态") @RequestParam String status,
             @Parameter(description = "审批意见") @RequestParam(required = false) String remark) {
+        boolean approved = "approved".equals(status);
         leaveRequestService.approve(id, approved, remark);
         return Result.success();
     }

@@ -182,4 +182,17 @@ public class AttendanceController {
         String status = attendanceService.determineAttendanceStatus(scheduleId);
         return Result.success(status);
     }
+
+    /**
+     * 综合考勤统计
+     */
+    @Operation(summary = "综合考勤统计", description = "获取考勤统计数据，包括按班级和按学员的统计")
+    @GetMapping("/statistics")
+    public Result<Map<String, Object>> getStatistics(
+            @Parameter(description = "开始日期") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @Parameter(description = "班级ID") @RequestParam(required = false) Long classId,
+            @Parameter(description = "学员ID") @RequestParam(required = false) Long studentId) {
+        return Result.success(attendanceService.getComprehensiveStats(startDate, endDate, classId, studentId));
+    }
 }

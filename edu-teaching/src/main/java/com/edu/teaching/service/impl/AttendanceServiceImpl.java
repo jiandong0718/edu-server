@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -388,6 +389,84 @@ public class AttendanceServiceImpl extends ServiceImpl<AttendanceMapper, Attenda
             throw new BusinessException("排课记录不存在");
         }
         return determineAttendanceStatusByTime(schedule, LocalDateTime.now());
+    }
+
+    @Override
+    public Map<String, Object> getComprehensiveStats(LocalDate startDate, LocalDate endDate, Long classId, Long studentId) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 总体统计
+        Map<String, Object> summary = new HashMap<>();
+        int totalSchedules = 0;
+        int totalAttendances = 0;
+        int presentCount = 0;
+        int absentCount = 0;
+        int lateCount = 0;
+        int leaveCount = 0;
+
+        // 按班级统计
+        List<Map<String, Object>> classStats = new ArrayList<>();
+        if (classId != null) {
+            // 单个班级统计
+            Map<String, Object> classStat = getClassAttendanceStats(classId, startDate, endDate);
+            Map<String, Object> classStatItem = new HashMap<>();
+            classStatItem.put("classId", classId);
+            classStatItem.put("className", "班级" + classId); // TODO: 从班级服务获取班级名称
+            classStatItem.put("totalStudents", 0); // TODO: 从班级服务获取学员数
+            classStatItem.put("totalSchedules", classStat.get("total"));
+            classStatItem.put("presentCount", classStat.get("present"));
+            classStatItem.put("absentCount", classStat.get("absent"));
+            classStatItem.put("lateCount", classStat.get("late"));
+            classStatItem.put("leaveCount", classStat.get("leave"));
+            classStatItem.put("attendanceRate", classStat.get("attendanceRate"));
+            classStats.add(classStatItem);
+
+            // 累加到总体统计
+            totalSchedules += (Integer) classStat.get("total");
+            presentCount += (Integer) classStat.get("present");
+            absentCount += (Integer) classStat.get("absent");
+            lateCount += (Integer) classStat.get("late");
+            leaveCount += (Integer) classStat.get("leave");
+        }
+
+        // 按学员统计
+        List<Map<String, Object>> studentStats = new ArrayList<>();
+        if (studentId != null) {
+            // 单个学员统计
+            Map<String, Object> studentStat = getAttendanceStats(studentId, classId, startDate, endDate);
+            Map<String, Object> studentStatItem = new HashMap<>();
+            studentStatItem.put("studentId", studentId);
+            studentStatItem.put("studentName", "学员" + studentId); // TODO: 从学员服务获取学员姓名
+            studentStatItem.put("className", classId != null ? "班级" + classId : "");
+            studentStatItem.put("totalSchedules", studentStat.get("total"));
+            studentStatItem.put("presentCount", studentStat.get("present"));
+            studentStatItem.put("absentCount", studentStat.get("absent"));
+            studentStatItem.put("lateCount", studentStat.get("late"));
+            studentStatItem.put("leaveCount", studentStat.get("leave"));
+            studentStatItem.put("attendanceRate", studentStat.get("attendanceRate"));
+            studentStats.add(studentStatItem);
+        } else if (classId != null) {
+            // 班级所有学员统计
+            // TODO: 获取班级所有学员并统计
+        }
+
+        // 计算总体出勤率
+        totalAttendances = presentCount + absentCount + lateCount + leaveCount;
+        double attendanceRate = totalAttendances > 0 ? (presentCount + lateCount) * 100.0 / totalAttendances : 0;
+
+        summary.put("totalSchedules", totalSchedules);
+        summary.put("totalAttendances", totalAttendances);
+        summary.put("presentCount", presentCount);
+        summary.put("absentCount", absentCount);
+        summary.put("lateCount", lateCount);
+        summary.put("leaveCount", leaveCount);
+        summary.put("attendanceRate", Math.round(attendanceRate * 100.0) / 100.0);
+
+        result.put("classStat", classStats);
+        result.put("studentStats", studentStats);
+        result.put("summary", summary);
+
+        return result;
     }
 
     /**

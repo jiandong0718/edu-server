@@ -81,4 +81,10 @@ public interface AttendanceService extends IService<Attendance> {
      * 根据签到时间和课程开始时间自动判断是否迟到
      */
     String determineAttendanceStatus(Long scheduleId);
+
+    /**
+     * 综合考勤统计
+     * 返回按班级和按学员的统计数据，以及总体汇总
+     */
+    Map<String, Object> getComprehensiveStats(LocalDate startDate, LocalDate endDate, Long classId, Long studentId);
 }
