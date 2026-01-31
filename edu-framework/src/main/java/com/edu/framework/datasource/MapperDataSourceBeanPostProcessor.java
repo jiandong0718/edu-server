@@ -24,6 +24,8 @@ import java.lang.reflect.Proxy;
 @ConditionalOnProperty(prefix = "spring.datasource.dynamic", name = "enabled", havingValue = "true")
 public class MapperDataSourceBeanPostProcessor implements BeanPostProcessor, BeanFactoryAware {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MapperDataSourceBeanPostProcessor.class);
+
     private BeanFactory beanFactory;
 
     @Override

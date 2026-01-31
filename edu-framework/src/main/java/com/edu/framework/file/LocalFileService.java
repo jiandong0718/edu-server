@@ -24,6 +24,8 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class LocalFileService implements FileService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LocalFileService.class);
+
     @Value("${file.local.base-path:/data/files}")
     private String basePath;
 

@@ -25,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class JwtTokenUtil {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtTokenUtil.class);
+
     @Value("${jwt.secret:edu-admin-secret-key-must-be-at-least-256-bits-long}")
     private String secret;
 

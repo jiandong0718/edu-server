@@ -2,10 +2,14 @@ package com.edu.teaching.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.edu.teaching.domain.dto.PriceCalculateDTO;
 import com.edu.teaching.domain.dto.PriceStrategyDTO;
+import com.edu.teaching.domain.dto.PriceStrategyQueryDTO;
 import com.edu.teaching.domain.entity.PriceStrategy;
+import com.edu.teaching.domain.vo.PriceCalculateVO;
+import com.edu.teaching.domain.vo.PriceStrategyVO;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 价格策略服务接口
@@ -13,7 +17,17 @@ import java.math.BigDecimal;
 public interface PriceStrategyService extends IService<PriceStrategy> {
 
     /**
-     * 创建价格策略
+     * 分页查询价格策略
+     */
+    Page<PriceStrategyVO> pageStrategies(PriceStrategyQueryDTO queryDTO);
+
+    /**
+     * 获取价格策略详情（包含规则列表）
+     */
+    PriceStrategyVO getStrategyDetail(Long id);
+
+    /**
+     * 创建价格策略（包含规则）
      */
     boolean createStrategy(PriceStrategyDTO dto);
 
@@ -23,9 +37,9 @@ public interface PriceStrategyService extends IService<PriceStrategy> {
     boolean updateStrategy(PriceStrategyDTO dto);
 
     /**
-     * 分页查询价格策略
+     * 删除价格策略
      */
-    Page<PriceStrategy> pageStrategies(Integer pageNum, Integer pageSize, String name, String type, Integer status);
+    boolean deleteStrategy(Long id);
 
     /**
      * 启用价格策略
@@ -38,9 +52,19 @@ public interface PriceStrategyService extends IService<PriceStrategy> {
     boolean disableStrategy(Long id);
 
     /**
-     * 计算折扣后价格
+     * 获取启用的价格策略列表
      */
-    BigDecimal calculateDiscountPrice(Long targetId, String targetType, BigDecimal originalPrice, String studentType);
+    List<PriceStrategyVO> getActiveStrategies(Long courseId, Long campusId);
+
+    /**
+     * 获取适用的价格策略列表
+     */
+    List<PriceStrategyVO> getApplicableStrategies(Long courseId, Long campusId);
+
+    /**
+     * 计算价格（根据策略和条件）
+     */
+    PriceCalculateVO calculatePrice(PriceCalculateDTO request);
 
     /**
      * 验证策略配置

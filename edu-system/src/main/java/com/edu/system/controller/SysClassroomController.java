@@ -1,13 +1,16 @@
 package com.edu.system.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
-import com.edu.system.domain.entity.SysClassroom;
+import com.edu.system.domain.dto.ClassroomDTO;
+import com.edu.system.domain.dto.ClassroomQueryDTO;
+import com.edu.system.domain.vo.ClassroomVO;
 import com.edu.system.service.SysClassroomService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,74 +28,64 @@ public class SysClassroomController {
 
     @Operation(summary = "分页查询教室列表")
     @GetMapping("/page")
-    public R<Page<SysClassroom>> page(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) Long campusId,
-            @RequestParam(required = false) Integer status) {
-        Page<SysClassroom> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<SysClassroom> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(name != null, SysClassroom::getName, name)
-                .eq(campusId != null, SysClassroom::getCampusId, campusId)
-                .eq(status != null, SysClassroom::getStatus, status)
-                .orderByAsc(SysClassroom::getSortOrder);
-        classroomService.page(page, wrapper);
+    public R<Page<ClassroomVO>> page(@Validated ClassroomQueryDTO queryDTO) {
+        Page<ClassroomVO> page = classroomService.getClassroomPage(queryDTO);
         return R.ok(page);
     }
 
     @Operation(summary = "获取教室列表")
     @GetMapping("/list")
-    public R<List<SysClassroom>> list(@RequestParam(required = false) Long campusId) {
-        LambdaQueryWrapper<SysClassroom> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(campusId != null, SysClassroom::getCampusId, campusId)
-                .eq(SysClassroom::getStatus, 1)
-                .orderByAsc(SysClassroom::getSortOrder);
-        return R.ok(classroomService.list(wrapper));
+    public R<List<ClassroomVO>> list(
+            @Parameter(description = "校区ID") @RequestParam(required = false) Long campusId) {
+        List<ClassroomVO> list = classroomService.getAvailableClassrooms(campusId);
+        return R.ok(list);
     }
 
     @Operation(summary = "获取教室详情")
     @GetMapping("/{id}")
-    public R<SysClassroom> getById(@PathVariable Long id) {
-        return R.ok(classroomService.getById(id));
+    public R<ClassroomVO> getById(
+            @Parameter(description = "教室ID") @PathVariable Long id) {
+        ClassroomVO vo = classroomService.getClassroomDetail(id);
+        return R.ok(vo);
     }
 
     @Operation(summary = "新增教室")
     @PostMapping
-    public R<Boolean> add(@RequestBody SysClassroom classroom) {
-        if (!classroomService.checkNameUnique(classroom.getName(), classroom.getCampusId(), null)) {
-            return R.fail("该校区下教室名称已存在");
-        }
-        return R.ok(classroomService.save(classroom));
+    public R<Long> add(@Validated @RequestBody ClassroomDTO dto) {
+        Long id = classroomService.createClassroom(dto);
+        return R.ok(id);
     }
 
     @Operation(summary = "修改教室")
-    @PutMapping
-    public R<Boolean> update(@RequestBody SysClassroom classroom) {
-        if (!classroomService.checkNameUnique(classroom.getName(), classroom.getCampusId(), classroom.getId())) {
-            return R.fail("该校区下教室名称已存在");
-        }
-        return R.ok(classroomService.updateById(classroom));
+    @PutMapping("/{id}")
+    public R<Void> update(
+            @Parameter(description = "教室ID") @PathVariable Long id,
+            @Validated @RequestBody ClassroomDTO dto) {
+        classroomService.updateClassroom(id, dto);
+        return R.ok();
     }
 
     @Operation(summary = "删除教室")
     @DeleteMapping("/{id}")
-    public R<Boolean> delete(@PathVariable Long id) {
-        return R.ok(classroomService.removeById(id));
+    public R<Void> delete(
+            @Parameter(description = "教室ID") @PathVariable Long id) {
+        classroomService.deleteClassroom(id);
+        return R.ok();
     }
 
     @Operation(summary = "批量删除教室")
     @DeleteMapping("/batch")
-    public R<Boolean> deleteBatch(@RequestBody List<Long> ids) {
-        return R.ok(classroomService.removeByIds(ids));
+    public R<Void> deleteBatch(@RequestBody List<Long> ids) {
+        classroomService.batchDeleteClassroom(ids);
+        return R.ok();
     }
 
     @Operation(summary = "修改状态")
     @PutMapping("/{id}/status")
-    public R<Boolean> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
-        SysClassroom classroom = new SysClassroom();
-        classroom.setId(id);
-        classroom.setStatus(status);
-        return R.ok(classroomService.updateById(classroom));
+    public R<Void> updateStatus(
+            @Parameter(description = "教室ID") @PathVariable Long id,
+            @Parameter(description = "状态：0-禁用，1-启用") @RequestParam Integer status) {
+        classroomService.updateStatus(id, status);
+        return R.ok();
     }
 }

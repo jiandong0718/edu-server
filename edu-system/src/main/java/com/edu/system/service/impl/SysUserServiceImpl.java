@@ -48,6 +48,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new BusinessException("用户名已存在");
         }
 
+        // 验证密码强度
+        validatePasswordStrength(user.getPassword());
+
         // 加密密码
         user.setPassword(BCrypt.hashpw(user.getPassword()));
 
@@ -112,6 +115,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public boolean resetPassword(Long userId, String newPassword) {
+        // 验证密码强度
+        validatePasswordStrength(newPassword);
+
         SysUser user = new SysUser();
         user.setId(userId);
         user.setPassword(BCrypt.hashpw(newPassword));
@@ -129,8 +135,45 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new BusinessException("原密码错误");
         }
 
+        // 验证新密码强度
+        validatePasswordStrength(newPassword);
+
         user.setPassword(BCrypt.hashpw(newPassword));
         return updateById(user);
+    }
+
+    /**
+     * 验证密码强度
+     * 要求：至少8位，包含大小写字母和数字
+     */
+    private void validatePasswordStrength(String password) {
+        if (password == null || password.length() < 8) {
+            throw new BusinessException("密码长度至少为8位");
+        }
+
+        boolean hasUpperCase = false;
+        boolean hasLowerCase = false;
+        boolean hasDigit = false;
+
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                hasUpperCase = true;
+            } else if (Character.isLowerCase(c)) {
+                hasLowerCase = true;
+            } else if (Character.isDigit(c)) {
+                hasDigit = true;
+            }
+        }
+
+        if (!hasUpperCase) {
+            throw new BusinessException("密码必须包含至少一个大写字母");
+        }
+        if (!hasLowerCase) {
+            throw new BusinessException("密码必须包含至少一个小写字母");
+        }
+        if (!hasDigit) {
+            throw new BusinessException("密码必须包含至少一个数字");
+        }
     }
 
     @Override

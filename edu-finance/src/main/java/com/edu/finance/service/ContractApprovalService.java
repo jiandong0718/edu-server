@@ -1,10 +1,14 @@
 package com.edu.finance.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.edu.finance.domain.dto.ApprovalRecordDTO;
 import com.edu.finance.domain.dto.ContractApprovalProcessDTO;
+import com.edu.finance.domain.dto.ContractApprovalQueryDTO;
 import com.edu.finance.domain.dto.ContractApprovalSubmitDTO;
 import com.edu.finance.domain.entity.ContractApproval;
 import com.edu.finance.domain.entity.ContractApprovalFlow;
+import com.edu.finance.domain.vo.ContractApprovalVO;
 
 import java.util.List;
 
@@ -60,4 +64,47 @@ public interface ContractApprovalService extends IService<ContractApproval> {
      * @return 待审批列表
      */
     List<ContractApproval> getPendingApprovals(Long approverId);
+
+    /**
+     * 分页查询待审批列表
+     *
+     * @param page 分页对象
+     * @param approverId 审批人ID
+     * @return 分页结果
+     */
+    IPage<ContractApprovalVO> getPendingApprovalsPage(IPage<ContractApprovalVO> page, Long approverId);
+
+    /**
+     * 分页查询审批记录
+     *
+     * @param page 分页对象
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    IPage<ContractApprovalVO> getApprovalPage(IPage<ContractApprovalVO> page, ContractApprovalQueryDTO queryDTO);
+
+    /**
+     * 获取审批详情
+     *
+     * @param approvalId 审批ID
+     * @return 审批详情
+     */
+    ContractApprovalVO getApprovalDetail(Long approvalId);
+
+    /**
+     * 获取审批记录时间线
+     *
+     * @param approvalId 审批ID
+     * @return 审批记录列表
+     */
+    List<ApprovalRecordDTO> getApprovalTimeline(Long approvalId);
+
+    /**
+     * 检查用户是否有审批权限
+     *
+     * @param approvalId 审批ID
+     * @param userId 用户ID
+     * @return 是否有权限
+     */
+    Boolean checkApprovalPermission(Long approvalId, Long userId);
 }

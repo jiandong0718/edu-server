@@ -1,5 +1,7 @@
 package com.edu.finance.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.finance.domain.entity.ContractPrintTemplate;
 import org.apache.ibatis.annotations.Mapper;

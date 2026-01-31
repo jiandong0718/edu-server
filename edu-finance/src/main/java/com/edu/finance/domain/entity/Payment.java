@@ -72,6 +72,16 @@ public class Payment extends BaseEntity {
     private String paymentScene;
 
     /**
+     * 使用的优惠券记录ID
+     */
+    private Long couponRecordId;
+
+    /**
+     * 优惠券优惠金额
+     */
+    private BigDecimal couponDiscountAmount;
+
+    /**
      * 收款人ID
      */
     private Long receiverId;

@@ -16,6 +16,7 @@ import com.edu.system.service.SysConfigService;
 import com.edu.system.service.SysLoginLogService;
 import com.edu.system.service.SysMenuService;
 import com.edu.system.service.SysUserService;
+import com.edu.system.service.LoginLockService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,53 +44,52 @@ public class AuthController {
     private final SysConfigService configService;
     private final SysLoginLogService loginLogService;
     private final SysCampusService campusService;
+    private final LoginLockService loginLockService;
 
     @Operation(summary = "登录")
     @PostMapping("/login")
     public R<Map<String, Object>> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         String ip = getIpAddress(httpRequest);
-
-        // 查询用户
-        SysUser user = userService.getByUsername(request.getUsername());
-        if (user == null) {
-            // 记录登录失败日志
-            loginLogService.recordLoginLog(request.getUsername(), null, ip, 0, "用户不存在");
-            throw new BusinessException("用户名或密码错误");
-        }
+        String username = request.getUsername();
 
         // 检查账号是否被锁定
-        if (user.getLockTime() != null) {
-            Integer lockDuration = configService.getConfigValueAsInt("login.lock.duration", 30);
-            LocalDateTime unlockTime = user.getLockTime().plusMinutes(lockDuration);
-            if (LocalDateTime.now().isBefore(unlockTime)) {
-                long remainingMinutes = java.time.Duration.between(LocalDateTime.now(), unlockTime).toMinutes();
-                loginLogService.recordLoginLog(user.getUsername(), user.getId(), ip, 0, "账号已锁定");
-                throw new BusinessException("账号已被锁定，请在 " + remainingMinutes + " 分钟后重试");
+        if (loginLockService.isLocked(username)) {
+            long remainingSeconds = loginLockService.getLockRemainingTime(username);
+            long remainingMinutes = (remainingSeconds + 59) / 60; // 向上取整
+            loginLogService.recordLoginLog(username, null, ip, 0, "账号已锁定");
+            throw new BusinessException("账号已被锁定，请在 " + remainingMinutes + " 分钟后重试");
+        }
+
+        // 查询用户
+        SysUser user = userService.getByUsername(username);
+        if (user == null) {
+            // 记录登录失败
+            int failCount = loginLockService.recordLoginFailure(username);
+            int remaining = loginLockService.getRemainingAttempts(username);
+
+            // 记录登录失败日志
+            loginLogService.recordLoginLog(username, null, ip, 0, "用户不存在");
+
+            if (remaining > 0) {
+                throw new BusinessException("用户名或密码错误，还可尝试 " + remaining + " 次");
             } else {
-                // 锁定时间已过，解锁账号
-                user.setLockTime(null);
-                user.setLoginFailCount(0);
-                userService.updateById(user);
+                throw new BusinessException("密码错误次数过多，账号已被锁定 30 分钟");
             }
         }
 
         // 验证密码
         if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {
-            // 登录失败，增加失败次数
-            Integer failCount = (user.getLoginFailCount() == null ? 0 : user.getLoginFailCount()) + 1;
-            Integer maxFailCount = configService.getConfigValueAsInt("login.fail.lock.count", 5);
+            // 登录失败，记录失败次数
+            int failCount = loginLockService.recordLoginFailure(username);
+            int remaining = loginLockService.getRemainingAttempts(username);
 
-            user.setLoginFailCount(failCount);
-            if (failCount >= maxFailCount) {
-                // 达到最大失败次数，锁定账号
-                user.setLockTime(LocalDateTime.now());
-                userService.updateById(user);
-                loginLogService.recordLoginLog(user.getUsername(), user.getId(), ip, 0, "密码错误次数过多，账号已锁定");
-                throw new BusinessException("密码错误次数过多，账号已被锁定 " + configService.getConfigValueAsInt("login.lock.duration", 30) + " 分钟");
-            } else {
-                userService.updateById(user);
+            // 记录登录失败日志
+            if (remaining > 0) {
                 loginLogService.recordLoginLog(user.getUsername(), user.getId(), ip, 0, "密码错误");
-                throw new BusinessException("用户名或密码错误，还可尝试 " + (maxFailCount - failCount) + " 次");
+                throw new BusinessException("用户名或密码错误，还可尝试 " + remaining + " 次");
+            } else {
+                loginLogService.recordLoginLog(user.getUsername(), user.getId(), ip, 0, "密码错误次数过多，账号已锁定");
+                throw new BusinessException("密码错误次数过多，账号已被锁定 30 分钟");
             }
         }
 
@@ -99,9 +99,10 @@ public class AuthController {
             throw new BusinessException("账号已被禁用");
         }
 
-        // 登录成功，重置失败次数
-        user.setLoginFailCount(0);
-        user.setLockTime(null);
+        // 登录成功，清除失败记录
+        loginLockService.clearLoginFailure(username);
+
+        // 更新最后登录信息
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(ip);
         userService.updateById(user);
@@ -211,10 +212,22 @@ public class AuthController {
             throw new BusinessException("未登录");
         }
 
-        // 如果是首次登录修改密码，可以不验证旧密码
+        // 验证新密码强度
+        validatePasswordStrength(request.getNewPassword());
+
+        // 验证新密码与确认密码是否一致
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException("新密码与确认密码不一致");
+        }
+
+        // 如果是首次登录修改密码，需要验证旧密码
         SysUser user = userService.getById(loginUser.getUserId());
         if (user.getIsFirstLogin() != null && user.getIsFirstLogin() == 1 && request.isFirstLogin()) {
-            // 首次登录修改密码
+            // 首次登录修改密码，需要验证旧密码
+            if (!BCrypt.checkpw(request.getOldPassword(), user.getPassword())) {
+                throw new BusinessException("原密码错误");
+            }
+
             user.setPassword(BCrypt.hashpw(request.getNewPassword()));
             user.setIsFirstLogin(0);
             user.setPasswordUpdateTime(LocalDateTime.now());
@@ -229,6 +242,40 @@ public class AuthController {
                 userService.updateById(user);
             }
             return R.ok(result);
+        }
+    }
+
+    /**
+     * 验证密码强度
+     * 要求：至少8位，包含大小写字母和数字
+     */
+    private void validatePasswordStrength(String password) {
+        if (password == null || password.length() < 8) {
+            throw new BusinessException("密码长度至少为8位");
+        }
+
+        boolean hasUpperCase = false;
+        boolean hasLowerCase = false;
+        boolean hasDigit = false;
+
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                hasUpperCase = true;
+            } else if (Character.isLowerCase(c)) {
+                hasLowerCase = true;
+            } else if (Character.isDigit(c)) {
+                hasDigit = true;
+            }
+        }
+
+        if (!hasUpperCase) {
+            throw new BusinessException("密码必须包含至少一个大写字母");
+        }
+        if (!hasLowerCase) {
+            throw new BusinessException("密码必须包含至少一个小写字母");
+        }
+        if (!hasDigit) {
+            throw new BusinessException("密码必须包含至少一个数字");
         }
     }
 
@@ -281,6 +328,26 @@ public class AuthController {
         return R.ok(result);
     }
 
+    @Operation(summary = "解锁账号")
+    @OperationLog(module = "认证管理", type = OperationLog.OperationType.UPDATE, description = "解锁账号")
+    @PostMapping("/unlock")
+    public R<Void> unlockAccount(@RequestBody UnlockAccountRequest request) {
+        LoginUser loginUser = SecurityContextHolder.getLoginUser();
+        if (loginUser == null) {
+            throw new BusinessException("未登录");
+        }
+
+        // 验证是否有管理员权限
+        if (!loginUser.getRoles().contains("super_admin") && !loginUser.getRoles().contains("admin")) {
+            throw new BusinessException("无权限执行此操作");
+        }
+
+        // 解锁账号
+        loginLockService.unlockAccount(request.getUsername());
+
+        return R.ok();
+    }
+
     @Data
     public static class LoginRequest {
         private String username;
@@ -291,11 +358,17 @@ public class AuthController {
     public static class ChangePasswordRequest {
         private String oldPassword;
         private String newPassword;
+        private String confirmPassword;
         private boolean firstLogin;  // 是否首次登录修改密码
     }
 
     @Data
     public static class SwitchCampusRequest {
         private Long campusId;
+    }
+
+    @Data
+    public static class UnlockAccountRequest {
+        private String username;
     }
 }

@@ -1,5 +1,7 @@
 package com.edu.student.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.student.domain.entity.StudentTagRelation;
 import org.apache.ibatis.annotations.Mapper;

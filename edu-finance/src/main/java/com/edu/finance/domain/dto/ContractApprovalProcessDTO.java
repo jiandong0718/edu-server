@@ -17,7 +17,7 @@ public class ContractApprovalProcessDTO {
     private Long approvalId;
 
     /**
-     * 审批结果：approved-通过，rejected-拒绝
+     * 审批结果：approved-通过，rejected-拒绝，returned-退回
      */
     @NotNull(message = "审批结果不能为空")
     private String result;

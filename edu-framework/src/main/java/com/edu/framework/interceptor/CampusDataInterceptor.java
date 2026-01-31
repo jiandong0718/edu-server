@@ -18,6 +18,8 @@ import java.sql.SQLException;
 @Slf4j
 public class CampusDataInterceptor implements InnerInterceptor {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CampusDataInterceptor.class);
+
     /**
      * 需要进行数据隔离的表前缀
      */

@@ -48,6 +48,16 @@ public class Contract extends BaseEntity {
     private BigDecimal discountAmount;
 
     /**
+     * 使用的优惠券记录ID
+     */
+    private Long couponRecordId;
+
+    /**
+     * 优惠券优惠金额
+     */
+    private BigDecimal couponDiscountAmount;
+
+    /**
      * 实付金额
      */
     private BigDecimal paidAmount;

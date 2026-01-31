@@ -6,6 +6,8 @@ import com.edu.teaching.domain.dto.CoursePackageDTO;
 import com.edu.teaching.domain.entity.CoursePackage;
 import com.edu.teaching.domain.vo.CoursePackageVO;
 
+import java.util.List;
+
 /**
  * 课程包服务接口
  */
@@ -30,6 +32,16 @@ public interface CoursePackageService extends IService<CoursePackage> {
      * 分页查询课程包
      */
     Page<CoursePackage> pagePackages(Integer pageNum, Integer pageSize, String name, Integer status);
+
+    /**
+     * 分页查询课程包（带详情）
+     */
+    Page<CoursePackageVO> pagePackagesWithDetails(Integer pageNum, Integer pageSize, String name, Integer status, Long campusId);
+
+    /**
+     * 获取在售课程包列表
+     */
+    List<CoursePackageVO> listOnSalePackages(Long campusId);
 
     /**
      * 上架课程包

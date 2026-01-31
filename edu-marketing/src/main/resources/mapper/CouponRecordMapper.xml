@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.marketing.mapper.CouponRecordMapper">
+
+    <!-- 查询优惠券统计信息 -->
+    <select id="getCouponStatistics" resultType="com.edu.marketing.domain.vo.CouponStatisticsVO">
+        SELECT
+            c.id AS couponId,
+            c.name AS couponName,
+            c.type AS couponType,
+            c.total_quantity AS totalQuantity,
+            c.issued_quantity AS issuedQuantity,
+            c.used_quantity AS usedQuantity,
+            (c.issued_quantity - c.used_quantity - IFNULL(expired_count, 0)) AS unusedQuantity,
+            IFNULL(expired_count, 0) AS expiredQuantity,
+            CASE
+                WHEN c.issued_quantity > 0 THEN ROUND(c.used_quantity * 100.0 / c.issued_quantity, 2)
+                ELSE 0
+            END AS useRate,
+            IFNULL(SUM(cr.discount_amount), 0) AS totalDiscountAmount,
+            CASE
+                WHEN c.used_quantity > 0 THEN ROUND(IFNULL(SUM(cr.discount_amount), 0) / c.used_quantity, 2)
+                ELSE 0
+            END AS avgDiscountAmount
+        FROM mkt_coupon c
+        LEFT JOIN mkt_coupon_record cr ON c.id = cr.coupon_id AND cr.status = 'used' AND cr.deleted = 0
+        LEFT JOIN (
+            SELECT coupon_id, COUNT(*) AS expired_count
+            FROM mkt_coupon_record
+            WHERE status = 'expired' AND deleted = 0
+            GROUP BY coupon_id
+        ) expired ON c.id = expired.coupon_id
+        WHERE c.deleted = 0
+        <if test="couponId != null">
+            AND c.id = #{couponId}
+        </if>
+        <if test="campusId != null">
+            AND (c.campus_ids IS NULL OR c.campus_ids = '' OR FIND_IN_SET(#{campusId}, c.campus_ids))
+        </if>
+        GROUP BY c.id, c.name, c.type, c.total_quantity, c.issued_quantity, c.used_quantity, expired_count
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 统计学员已领取某优惠券的数量 -->
+    <select id="countReceivedByStudent" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_coupon_record
+        WHERE student_id = #{studentId}
+          AND coupon_id = #{couponId}
+          AND deleted = 0
+    </select>
+
+    <!-- 统计学员已使用某优惠券的数量 -->
+    <select id="countUsedByStudent" resultType="int">
+        SELECT COUNT(*)
+        FROM mkt_coupon_record
+        WHERE student_id = #{studentId}
+          AND coupon_id = #{couponId}
+          AND status = 'used'
+          AND deleted = 0
+    </select>
+
+</mapper>

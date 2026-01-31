@@ -30,7 +30,7 @@ public class CourseController {
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) Integer status) {
+            @RequestParam(required = false) String status) {
         Page<Course> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(name != null, Course::getName, name)
@@ -45,9 +45,15 @@ public class CourseController {
     @GetMapping("/list")
     public R<List<Course>> list() {
         List<Course> list = courseService.list(new LambdaQueryWrapper<Course>()
-                .eq(Course::getStatus, 1)
+                .eq(Course::getStatus, "ON_SALE")
                 .orderByAsc(Course::getSortOrder));
         return R.ok(list);
+    }
+
+    @Operation(summary = "获取在售课程列表")
+    @GetMapping("/on-sale")
+    public R<List<Course>> getOnSaleCourses() {
+        return R.ok(courseService.getOnSaleCourses());
     }
 
     @Operation(summary = "获取课程详情")
@@ -61,6 +67,10 @@ public class CourseController {
     public R<Boolean> add(@RequestBody Course course) {
         if (!courseService.checkCodeUnique(course.getCode(), null)) {
             return R.fail("课程编码已存在");
+        }
+        // 新增课程默认为草稿状态
+        if (course.getStatus() == null) {
+            course.setStatus("DRAFT");
         }
         return R.ok(courseService.save(course));
     }
@@ -81,13 +91,39 @@ public class CourseController {
     }
 
     @Operation(summary = "上架课程")
+    @PutMapping("/{id}/on-sale")
+    public R<Boolean> onSale(@PathVariable Long id) {
+        return R.ok(courseService.onSale(id));
+    }
+
+    @Operation(summary = "下架课程")
+    @PutMapping("/{id}/off-sale")
+    public R<Boolean> offSale(@PathVariable Long id) {
+        return R.ok(courseService.offSale(id));
+    }
+
+    @Operation(summary = "批量上架课程")
+    @PutMapping("/batch-on-sale")
+    public R<Boolean> batchOnSale(@RequestBody List<Long> courseIds) {
+        return R.ok(courseService.batchOnSale(courseIds));
+    }
+
+    @Operation(summary = "批量下架课程")
+    @PutMapping("/batch-off-sale")
+    public R<Boolean> batchOffSale(@RequestBody List<Long> courseIds) {
+        return R.ok(courseService.batchOffSale(courseIds));
+    }
+
+    @Operation(summary = "上架课程（旧接口，保持兼容）")
     @PutMapping("/{id}/publish")
+    @Deprecated
     public R<Boolean> publish(@PathVariable Long id) {
         return R.ok(courseService.publish(id));
     }
 
-    @Operation(summary = "下架课程")
+    @Operation(summary = "下架课程（旧接口，保持兼容）")
     @PutMapping("/{id}/unpublish")
+    @Deprecated
     public R<Boolean> unpublish(@PathVariable Long id) {
         return R.ok(courseService.unpublish(id));
     }

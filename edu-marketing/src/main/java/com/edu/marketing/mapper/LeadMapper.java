@@ -1,5 +1,7 @@
 package com.edu.marketing.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.edu.marketing.domain.entity.Lead;
@@ -11,6 +13,7 @@ import java.util.Map;
 /**
  * 线索 Mapper
  */
+@DS("marketing")
 public interface LeadMapper extends BaseMapper<Lead> {
 
     /**

@@ -1,14 +1,24 @@
 package com.edu.finance.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.common.exception.BusinessException;
+import com.edu.finance.domain.dto.ApprovalRecordDTO;
 import com.edu.finance.domain.dto.ContractApprovalProcessDTO;
+import com.edu.finance.domain.dto.ContractApprovalQueryDTO;
 import com.edu.finance.domain.dto.ContractApprovalSubmitDTO;
 import com.edu.finance.domain.entity.Contract;
 import com.edu.finance.domain.entity.ContractApproval;
+import com.edu.finance.domain.entity.ContractApprovalConfig;
 import com.edu.finance.domain.entity.ContractApprovalFlow;
+import com.edu.finance.domain.vo.ContractApprovalFlowVO;
+import com.edu.finance.domain.vo.ContractApprovalVO;
+import com.edu.finance.event.ContractApprovalEvent;
+import com.edu.finance.mapper.ContractApprovalConfigMapper;
 import com.edu.finance.mapper.ContractApprovalFlowMapper;
 import com.edu.finance.mapper.ContractApprovalMapper;
 import com.edu.finance.mapper.ContractMapper;
@@ -16,15 +26,19 @@ import com.edu.finance.service.ContractApprovalService;
 import com.edu.framework.security.SecurityContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 合同审批服务实现
+ * 合同审批服务实现（增强版）
  */
 @Slf4j
 @Service
@@ -35,6 +49,8 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
     private final ContractApprovalMapper approvalMapper;
     private final ContractApprovalFlowMapper approvalFlowMapper;
     private final ContractMapper contractMapper;
+    private final ContractApprovalConfigMapper approvalConfigMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -54,6 +70,14 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
             throw new BusinessException("该合同已有待审批记录，请勿重复提交");
         }
 
+        // 根据合同金额和审批类型获取审批配置
+        ContractApprovalConfig config = approvalConfigMapper.selectByTypeAndAmount(
+                submitDTO.getApprovalType(), contract.getAmount());
+
+        if (config == null) {
+            throw new BusinessException("未找到匹配的审批配置，请联系管理员");
+        }
+
         // 创建审批记录
         ContractApproval approval = new ContractApproval();
         approval.setContractId(submitDTO.getContractId());
@@ -64,22 +88,40 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
         approval.setSubmitTime(LocalDateTime.now());
         approval.setSubmitReason(submitDTO.getSubmitReason());
         approval.setCurrentStep(1);
-        approval.setTotalSteps(1); // 简化为单级审批，可扩展为多级
+        approval.setTotalSteps(config.getApprovalLevels());
 
         approvalMapper.insert(approval);
 
-        // 创建审批流程（简化为单级审批，审批人为管理员或财务主管）
-        // 实际应用中可以根据合同金额、类型等配置不同的审批流程
-        ContractApprovalFlow flow = new ContractApprovalFlow();
-        flow.setApprovalId(approval.getId());
-        flow.setStepNo(1);
-        flow.setApproverId(getDefaultApproverId()); // 获取默认审批人
-        flow.setApproverName("财务主管"); // 实际应从用户表查询
-        flow.setStatus("pending");
+        // 解析审批人配置并创建审批流程
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> approverList = (List<Map<String, Object>>) (List<?>) JSONUtil.toList(config.getApproverConfig(), Map.class);
+        for (Map<String, Object> approverConfig : approverList) {
+            Integer level = (Integer) approverConfig.get("level");
+            String roleCode = (String) approverConfig.get("roleCode");
+            String roleName = (String) approverConfig.get("roleName");
 
-        approvalFlowMapper.insert(flow);
+            // 根据角色获取审批人（这里简化处理，实际应该从用户角色表查询）
+            Long approverId = getApproverByRole(roleCode);
 
-        log.info("合同审批提交成功: approvalId={}, contractId={}", approval.getId(), submitDTO.getContractId());
+            ContractApprovalFlow flow = new ContractApprovalFlow();
+            flow.setApprovalId(approval.getId());
+            flow.setStepNo(level);
+            flow.setApproverId(approverId);
+            flow.setApproverName(roleName);
+            flow.setStatus(level == 1 ? "pending" : "waiting"); // 第一级为待审批，其他为等待中
+
+            approvalFlowMapper.insert(flow);
+        }
+
+        // 发布审批提交事件
+        Long firstApproverId = approverList.isEmpty() ? null :
+                getApproverByRole((String) approverList.get(0).get("roleCode"));
+        publishApprovalEvent(approval.getId(), contract.getId(), "submitted",
+                firstApproverId, null, approval.getSubmitterId(),
+                SecurityContextHolder.getUsername(), contract.getContractNo(), null);
+
+        log.info("合同审批提交成功: approvalId={}, contractId={}, levels={}",
+                approval.getId(), submitDTO.getContractId(), config.getApprovalLevels());
         return approval.getId();
     }
 
@@ -97,6 +139,7 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
         }
 
         Long currentUserId = SecurityContextHolder.getUserId();
+        String currentUsername = SecurityContextHolder.getUsername();
 
         // 查询当前用户的审批流程
         LambdaQueryWrapper<ContractApprovalFlow> flowWrapper = new LambdaQueryWrapper<>();
@@ -109,27 +152,93 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
             throw new BusinessException("您没有权限审批该合同");
         }
 
+        // 获取合同信息
+        Contract contract = contractMapper.selectById(approval.getContractId());
+
         // 更新审批流程
         flow.setStatus(processDTO.getResult());
         flow.setApproveTime(LocalDateTime.now());
         flow.setApproveRemark(processDTO.getApproveRemark());
         approvalFlowMapper.updateById(flow);
 
-        // 更新审批记录
-        approval.setStatus(processDTO.getResult());
-        approval.setApproverId(currentUserId);
-        approval.setApproveTime(LocalDateTime.now());
-        approval.setApproveRemark(processDTO.getApproveRemark());
-        approvalMapper.updateById(approval);
-
-        // 如果审批通过，更新合同状态
+        String eventType;
+        // 根据审批结果处理
         if ("approved".equals(processDTO.getResult())) {
-            Contract contract = contractMapper.selectById(approval.getContractId());
-            if (contract != null && "pending".equals(contract.getStatus())) {
+            // 检查是否还有下一级审批
+            if (flow.getStepNo() < approval.getTotalSteps()) {
+                // 激活下一级审批
+                LambdaQueryWrapper<ContractApprovalFlow> nextFlowWrapper = new LambdaQueryWrapper<>();
+                nextFlowWrapper.eq(ContractApprovalFlow::getApprovalId, processDTO.getApprovalId())
+                        .eq(ContractApprovalFlow::getStepNo, flow.getStepNo() + 1);
+                ContractApprovalFlow nextFlow = approvalFlowMapper.selectOne(nextFlowWrapper);
+                if (nextFlow != null) {
+                    nextFlow.setStatus("pending");
+                    approvalFlowMapper.updateById(nextFlow);
+
+                    // 更新当前步骤
+                    approval.setCurrentStep(flow.getStepNo() + 1);
+                    approvalMapper.updateById(approval);
+
+                    // 发布事件通知下一级审批人
+                    publishApprovalEvent(approval.getId(), contract.getId(), "submitted",
+                            nextFlow.getApproverId(), nextFlow.getApproverName(),
+                            approval.getSubmitterId(), null, contract.getContractNo(), null);
+
+                    log.info("审批通过，进入下一级: approvalId={}, currentStep={}, totalSteps={}",
+                            processDTO.getApprovalId(), approval.getCurrentStep(), approval.getTotalSteps());
+                    return true;
+                }
+            }
+
+            // 所有审批都通过，更新审批记录状态
+            approval.setStatus("approved");
+            approval.setApproverId(currentUserId);
+            approval.setApproveTime(LocalDateTime.now());
+            approval.setApproveRemark(processDTO.getApproveRemark());
+            approvalMapper.updateById(approval);
+
+            // 更新合同状态
+            if ("pending".equals(contract.getStatus())) {
                 contract.setStatus("signed");
                 contractMapper.updateById(contract);
             }
+
+            eventType = "approved";
+
+        } else if ("rejected".equals(processDTO.getResult())) {
+            // 审批拒绝
+            approval.setStatus("rejected");
+            approval.setApproverId(currentUserId);
+            approval.setApproveTime(LocalDateTime.now());
+            approval.setApproveRemark(processDTO.getApproveRemark());
+            approvalMapper.updateById(approval);
+
+            // 将其他待审批的流程标记为跳过
+            skipRemainingFlows(processDTO.getApprovalId());
+
+            eventType = "rejected";
+
+        } else if ("returned".equals(processDTO.getResult())) {
+            // 审批退回
+            approval.setStatus("returned");
+            approval.setApproverId(currentUserId);
+            approval.setApproveTime(LocalDateTime.now());
+            approval.setApproveRemark(processDTO.getApproveRemark());
+            approvalMapper.updateById(approval);
+
+            // 将其他待审批的流程标记为跳过
+            skipRemainingFlows(processDTO.getApprovalId());
+
+            eventType = "returned";
+
+        } else {
+            throw new BusinessException("不支持的审批结果: " + processDTO.getResult());
         }
+
+        // 发布审批事件
+        publishApprovalEvent(approval.getId(), contract.getId(), eventType,
+                currentUserId, currentUsername, approval.getSubmitterId(),
+                null, contract.getContractNo(), processDTO.getApproveRemark());
 
         log.info("合同审批处理成功: approvalId={}, result={}", processDTO.getApprovalId(), processDTO.getResult());
         return true;
@@ -157,14 +266,15 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
         approvalMapper.updateById(approval);
 
         // 更新审批流程状态
-        LambdaQueryWrapper<ContractApprovalFlow> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ContractApprovalFlow::getApprovalId, approvalId)
-                .eq(ContractApprovalFlow::getStatus, "pending");
-        List<ContractApprovalFlow> flows = approvalFlowMapper.selectList(wrapper);
-        for (ContractApprovalFlow flow : flows) {
-            flow.setStatus("skipped");
-            approvalFlowMapper.updateById(flow);
-        }
+        skipRemainingFlows(approvalId);
+
+        // 获取合同信息
+        Contract contract = contractMapper.selectById(approval.getContractId());
+
+        // 发布撤销事件
+        publishApprovalEvent(approvalId, contract.getId(), "cancelled",
+                null, null, currentUserId, SecurityContextHolder.getUsername(),
+                contract.getContractNo(), null);
 
         log.info("合同审批撤销成功: approvalId={}", approvalId);
         return true;
@@ -183,6 +293,115 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
     @Override
     public List<ContractApproval> getPendingApprovals(Long approverId) {
         return approvalMapper.selectPendingList(approverId);
+    }
+
+    @Override
+    public IPage<ContractApprovalVO> getPendingApprovalsPage(IPage<ContractApprovalVO> page, Long approverId) {
+        // 这里需要在Mapper中实现分页查询
+        // 简化处理，返回空页
+        return page;
+    }
+
+    @Override
+    public IPage<ContractApprovalVO> getApprovalPage(IPage<ContractApprovalVO> page, ContractApprovalQueryDTO queryDTO) {
+        // 这里需要在Mapper中实现分页查询
+        // 简化处理，返回空页
+        return page;
+    }
+
+    @Override
+    public ContractApprovalVO getApprovalDetail(Long approvalId) {
+        ContractApproval approval = approvalMapper.selectById(approvalId);
+        if (approval == null) {
+            return null;
+        }
+
+        ContractApprovalVO vo = BeanUtil.copyProperties(approval, ContractApprovalVO.class);
+
+        // 获取审批流程
+        List<ContractApprovalFlow> flows = approvalFlowMapper.selectByApprovalId(approvalId);
+        List<ContractApprovalFlowVO> flowVOs = flows.stream()
+                .map(flow -> BeanUtil.copyProperties(flow, ContractApprovalFlowVO.class))
+                .collect(Collectors.toList());
+        vo.setFlowList(flowVOs);
+
+        // 获取合同信息
+        Contract contract = contractMapper.selectById(approval.getContractId());
+        if (contract != null) {
+            vo.setContractNo(contract.getContractNo());
+            vo.setStudentName(contract.getStudentName());
+            vo.setContractAmount(contract.getAmount());
+        }
+
+        return vo;
+    }
+
+    @Override
+    public List<ApprovalRecordDTO> getApprovalTimeline(Long approvalId) {
+        ContractApproval approval = approvalMapper.selectById(approvalId);
+        if (approval == null) {
+            return new ArrayList<>();
+        }
+
+        List<ApprovalRecordDTO> timeline = new ArrayList<>();
+
+        // 添加提交记录
+        ApprovalRecordDTO submitRecord = new ApprovalRecordDTO();
+        submitRecord.setStepNo(0);
+        submitRecord.setActionType("submit");
+        submitRecord.setActionTypeName("提交审批");
+        submitRecord.setOperatorId(approval.getSubmitterId());
+        submitRecord.setOperatorName(approval.getSubmitterName());
+        submitRecord.setOperateTime(approval.getSubmitTime());
+        submitRecord.setRemark(approval.getSubmitReason());
+        submitRecord.setStatus("completed");
+        timeline.add(submitRecord);
+
+        // 添加审批流程记录
+        List<ContractApprovalFlow> flows = approvalFlowMapper.selectByApprovalId(approvalId);
+        for (ContractApprovalFlow flow : flows) {
+            ApprovalRecordDTO record = new ApprovalRecordDTO();
+            record.setStepNo(flow.getStepNo());
+            record.setOperatorId(flow.getApproverId());
+            record.setOperatorName(flow.getApproverName());
+            record.setOperateTime(flow.getApproveTime());
+            record.setRemark(flow.getApproveRemark());
+
+            if ("approved".equals(flow.getStatus())) {
+                record.setActionType("approve");
+                record.setActionTypeName("审批通过");
+                record.setStatus("completed");
+            } else if ("rejected".equals(flow.getStatus())) {
+                record.setActionType("reject");
+                record.setActionTypeName("审批拒绝");
+                record.setStatus("completed");
+            } else if ("returned".equals(flow.getStatus())) {
+                record.setActionType("return");
+                record.setActionTypeName("审批退回");
+                record.setStatus("completed");
+            } else if ("pending".equals(flow.getStatus())) {
+                record.setActionType("approve");
+                record.setActionTypeName("待审批");
+                record.setStatus("pending");
+            } else {
+                record.setActionType("skip");
+                record.setActionTypeName("已跳过");
+                record.setStatus("completed");
+            }
+
+            timeline.add(record);
+        }
+
+        return timeline;
+    }
+
+    @Override
+    public Boolean checkApprovalPermission(Long approvalId, Long userId) {
+        LambdaQueryWrapper<ContractApprovalFlow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ContractApprovalFlow::getApprovalId, approvalId)
+                .eq(ContractApprovalFlow::getApproverId, userId)
+                .eq(ContractApprovalFlow::getStatus, "pending");
+        return approvalFlowMapper.selectCount(wrapper) > 0;
     }
 
     /**
@@ -207,12 +426,41 @@ public class ContractApprovalServiceImpl extends ServiceImpl<ContractApprovalMap
     }
 
     /**
-     * 获取默认审批人ID
-     * 实际应用中应该根据配置或规则获取
+     * 根据角色获取审批人ID
+     * 实际应该从用户角色表查询
      */
-    private Long getDefaultApproverId() {
+    private Long getApproverByRole(String roleCode) {
         // 简化处理，返回固定值
-        // 实际应该从配置表或用户角色中获取财务主管/管理员
+        // 实际应该从用户角色关联表查询具有该角色的用户
         return 1L;
+    }
+
+    /**
+     * 跳过剩余的审批流程
+     */
+    private void skipRemainingFlows(Long approvalId) {
+        LambdaQueryWrapper<ContractApprovalFlow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ContractApprovalFlow::getApprovalId, approvalId)
+                .in(ContractApprovalFlow::getStatus, "pending", "waiting");
+        List<ContractApprovalFlow> flows = approvalFlowMapper.selectList(wrapper);
+        for (ContractApprovalFlow flow : flows) {
+            flow.setStatus("skipped");
+            approvalFlowMapper.updateById(flow);
+        }
+    }
+
+    /**
+     * 发布审批事件
+     */
+    private void publishApprovalEvent(Long approvalId, Long contractId, String eventType,
+                                       Long approverId, String approverName,
+                                       Long submitterId, String submitterName,
+                                       String contractNo, String remark) {
+        ContractApprovalEvent event = new ContractApprovalEvent(
+                this, approvalId, contractId, eventType,
+                approverId, approverName, submitterId, submitterName,
+                contractNo, remark
+        );
+        eventPublisher.publishEvent(event);
     }
 }

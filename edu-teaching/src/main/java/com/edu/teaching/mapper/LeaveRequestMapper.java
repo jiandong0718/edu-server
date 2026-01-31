@@ -1,5 +1,7 @@
 package com.edu.teaching.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.edu.teaching.domain.entity.LeaveRequest;
@@ -8,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 /**
  * 请假申请 Mapper
  */
+@DS("teaching")
 public interface LeaveRequestMapper extends BaseMapper<LeaveRequest> {
 
     /**

@@ -1,5 +1,7 @@
 package com.edu.teaching.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.teaching.domain.entity.Schedule;
 import org.apache.ibatis.annotations.Param;
@@ -11,6 +13,7 @@ import java.util.List;
 /**
  * 排课 Mapper
  */
+@DS("teaching")
 public interface ScheduleMapper extends BaseMapper<Schedule> {
 
     /**

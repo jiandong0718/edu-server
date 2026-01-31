@@ -1,5 +1,7 @@
 package com.edu.system.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.edu.system.domain.vo.TeachingDashboardVO;
 import org.apache.ibatis.annotations.Param;
 
@@ -9,6 +11,7 @@ import java.util.List;
 /**
  * 教学数据看板 Mapper
  */
+@DS("system")
 public interface TeachingDashboardMapper {
 
     /**

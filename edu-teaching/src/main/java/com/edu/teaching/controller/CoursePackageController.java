@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * 课程包管理控制器
  */
@@ -24,13 +26,21 @@ public class CoursePackageController {
 
     @Operation(summary = "分页查询课程包列表")
     @GetMapping("/page")
-    public R<Page<CoursePackage>> page(
+    public R<Page<CoursePackageVO>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) Integer status) {
-        Page<CoursePackage> page = coursePackageService.pagePackages(pageNum, pageSize, name, status);
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long campusId) {
+        Page<CoursePackageVO> page = coursePackageService.pagePackagesWithDetails(pageNum, pageSize, name, status, campusId);
         return R.ok(page);
+    }
+
+    @Operation(summary = "获取在售课程包列表")
+    @GetMapping("/list")
+    public R<List<CoursePackageVO>> list(@RequestParam(required = false) Long campusId) {
+        List<CoursePackageVO> list = coursePackageService.listOnSalePackages(campusId);
+        return R.ok(list);
     }
 
     @Operation(summary = "获取课程包详情")
@@ -55,11 +65,9 @@ public class CoursePackageController {
     }
 
     @Operation(summary = "修改课程包")
-    @PutMapping
-    public R<Boolean> update(@RequestBody CoursePackageDTO dto) {
-        if (dto.getId() == null) {
-            return R.fail("课程包ID不能为空");
-        }
+    @PutMapping("/{id}")
+    public R<Boolean> update(@PathVariable Long id, @RequestBody CoursePackageDTO dto) {
+        dto.setId(id);
         // 验证课程是否存在
         if (!coursePackageService.validateCourses(dto)) {
             return R.fail("课程包中包含不存在的课程");
@@ -87,5 +95,15 @@ public class CoursePackageController {
     public R<Boolean> unpublish(@PathVariable Long id) {
         boolean result = coursePackageService.unpublishPackage(id);
         return result ? R.ok(true) : R.fail("下架课程包失败");
+    }
+
+    @Operation(summary = "更新课程包状态")
+    @PutMapping("/{id}/status")
+    public R<Boolean> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+        if (status == 1) {
+            return publish(id);
+        } else {
+            return unpublish(id);
+        }
     }
 }

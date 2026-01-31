@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.AccountsReceivableReportMapper">
+
+    <resultMap id="AccountsReceivableResultMap" type="com.edu.finance.domain.vo.AccountsReceivableVO">
+        <result column="contract_id" property="contractId"/>
+        <result column="contract_no" property="contractNo"/>
+        <result column="student_id" property="studentId"/>
+        <result column="student_name" property="studentName"/>
+        <result column="student_phone" property="studentPhone"/>
+        <result column="campus_id" property="campusId"/>
+        <result column="campus_name" property="campusName"/>
+        <result column="contract_amount" property="contractAmount"/>
+        <result column="receivable_amount" property="receivableAmount"/>
+        <result column="received_amount" property="receivedAmount"/>
+        <result column="arrears_amount" property="arrearsAmount"/>
+        <result column="sign_date" property="signDate"/>
+        <result column="effective_date" property="effectiveDate"/>
+        <result column="arrears_days" property="arrearsDays"/>
+        <result column="aging_range" property="agingRange"/>
+        <result column="contract_status" property="contractStatus"/>
+        <result column="contract_status_desc" property="contractStatusDesc"/>
+        <result column="sales_id" property="salesId"/>
+        <result column="sales_name" property="salesName"/>
+        <result column="last_payment_time" property="lastPaymentTime"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <select id="selectAccountsReceivablePage" resultMap="AccountsReceivableResultMap">
+        SELECT
+            c.id as contract_id,
+            c.contract_no,
+            c.student_id,
+            s.name as student_name,
+            s.phone as student_phone,
+            c.campus_id,
+            campus.name as campus_name,
+            c.amount as contract_amount,
+            c.paid_amount as receivable_amount,
+            COALESCE(c.received_amount, 0) as received_amount,
+            (c.paid_amount - COALESCE(c.received_amount, 0)) as arrears_amount,
+            c.sign_date,
+            c.effective_date,
+            DATEDIFF(CURDATE(), c.effective_date) as arrears_days,
+            CASE
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN '30'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 60 THEN '30_60'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 90 THEN '60_90'
+                ELSE '90_plus'
+            END as aging_range,
+            c.status as contract_status,
+            CASE c.status
+                WHEN 'pending' THEN '待签署'
+                WHEN 'signed' THEN '已签署'
+                WHEN 'completed' THEN '已完成'
+                WHEN 'refunded' THEN '已退费'
+                WHEN 'cancelled' THEN '已作废'
+                ELSE c.status
+            END as contract_status_desc,
+            c.sales_id,
+            u.name as sales_name,
+            (SELECT MAX(pay_time) FROM fin_payment WHERE contract_id = c.id AND status = 'paid') as last_payment_time,
+            c.create_time
+        FROM fin_contract c
+        LEFT JOIN stu_student s ON c.student_id = s.id
+        LEFT JOIN sys_campus campus ON c.campus_id = campus.id
+        LEFT JOIN sys_user u ON c.sales_id = u.id
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.paid_amount > COALESCE(c.received_amount, 0)
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.studentId != null">
+            AND c.student_id = #{query.studentId}
+        </if>
+        <if test="query.studentName != null and query.studentName != ''">
+            AND s.name LIKE CONCAT('%', #{query.studentName}, '%')
+        </if>
+        <if test="query.studentPhone != null and query.studentPhone != ''">
+            AND s.phone LIKE CONCAT('%', #{query.studentPhone}, '%')
+        </if>
+        <if test="query.contractNo != null and query.contractNo != ''">
+            AND c.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
+        </if>
+        <if test="query.minArrearsAmount != null">
+            AND (c.paid_amount - COALESCE(c.received_amount, 0)) &gt;= #{query.minArrearsAmount}
+        </if>
+        <if test="query.maxArrearsAmount != null">
+            AND (c.paid_amount - COALESCE(c.received_amount, 0)) &lt;= #{query.maxArrearsAmount}
+        </if>
+        <if test="query.agingRange != null and query.agingRange != ''">
+            <choose>
+                <when test="query.agingRange == '30'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 30
+                </when>
+                <when test="query.agingRange == '30_60'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &gt; 30 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 60
+                </when>
+                <when test="query.agingRange == '60_90'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &gt; 60 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 90
+                </when>
+                <when test="query.agingRange == '90_plus'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &gt; 90
+                </when>
+            </choose>
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+        ORDER BY arrears_amount DESC, arrears_days DESC
+    </select>
+
+    <select id="selectAgingAnalysis" resultType="com.edu.finance.domain.vo.AgingAnalysisVO">
+        SELECT
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN (c.paid_amount - COALESCE(c.received_amount, 0)) ELSE 0 END) as within30DaysAmount,
+            COUNT(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN 1 END) as within30DaysCount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 30 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 60 THEN (c.paid_amount - COALESCE(c.received_amount, 0)) ELSE 0 END) as days30To60Amount,
+            COUNT(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 30 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 60 THEN 1 END) as days30To60Count,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 60 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 90 THEN (c.paid_amount - COALESCE(c.received_amount, 0)) ELSE 0 END) as days60To90Amount,
+            COUNT(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 60 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 90 THEN 1 END) as days60To90Count,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 90 THEN (c.paid_amount - COALESCE(c.received_amount, 0)) ELSE 0 END) as over90DaysAmount,
+            COUNT(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 90 THEN 1 END) as over90DaysCount,
+            SUM(c.paid_amount - COALESCE(c.received_amount, 0)) as totalArrearsAmount,
+            COUNT(*) as totalArrearsCount
+        FROM fin_contract c
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.paid_amount > COALESCE(c.received_amount, 0)
+        <if test="campusId != null">
+            AND c.campus_id = #{campusId}
+        </if>
+    </select>
+
+    <select id="selectCampusArrearsStatistics" resultType="com.edu.finance.domain.vo.CampusArrearsStatisticsVO">
+        SELECT
+            c.campus_id as campusId,
+            campus.name as campusName,
+            SUM(c.paid_amount - COALESCE(c.received_amount, 0)) as arrearsAmount,
+            COUNT(DISTINCT c.student_id) as arrearsStudentCount,
+            COUNT(*) as arrearsContractCount,
+            AVG(c.paid_amount - COALESCE(c.received_amount, 0)) as avgArrearsAmount
+        FROM fin_contract c
+        LEFT JOIN sys_campus campus ON c.campus_id = campus.id
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.paid_amount > COALESCE(c.received_amount, 0)
+        GROUP BY c.campus_id, campus.name
+        ORDER BY arrearsAmount DESC
+    </select>
+
+    <select id="selectAccountsReceivableList" resultMap="AccountsReceivableResultMap">
+        SELECT
+            c.id as contract_id,
+            c.contract_no,
+            c.student_id,
+            s.name as student_name,
+            s.phone as student_phone,
+            c.campus_id,
+            campus.name as campus_name,
+            c.amount as contract_amount,
+            c.paid_amount as receivable_amount,
+            COALESCE(c.received_amount, 0) as received_amount,
+            (c.paid_amount - COALESCE(c.received_amount, 0)) as arrears_amount,
+            c.sign_date,
+            c.effective_date,
+            DATEDIFF(CURDATE(), c.effective_date) as arrears_days,
+            CASE
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN '30天内'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 60 THEN '30-60天'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 90 THEN '60-90天'
+                ELSE '90天以上'
+            END as aging_range,
+            c.status as contract_status,
+            CASE c.status
+                WHEN 'pending' THEN '待签署'
+                WHEN 'signed' THEN '已签署'
+                WHEN 'completed' THEN '已完成'
+                WHEN 'refunded' THEN '已退费'
+                WHEN 'cancelled' THEN '已作废'
+                ELSE c.status
+            END as contract_status_desc,
+            c.sales_id,
+            u.name as sales_name,
+            (SELECT MAX(pay_time) FROM fin_payment WHERE contract_id = c.id AND status = 'paid') as last_payment_time,
+            c.create_time
+        FROM fin_contract c
+        LEFT JOIN stu_student s ON c.student_id = s.id
+        LEFT JOIN sys_campus campus ON c.campus_id = campus.id
+        LEFT JOIN sys_user u ON c.sales_id = u.id
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.paid_amount > COALESCE(c.received_amount, 0)
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.studentId != null">
+            AND c.student_id = #{query.studentId}
+        </if>
+        <if test="query.studentName != null and query.studentName != ''">
+            AND s.name LIKE CONCAT('%', #{query.studentName}, '%')
+        </if>
+        <if test="query.studentPhone != null and query.studentPhone != ''">
+            AND s.phone LIKE CONCAT('%', #{query.studentPhone}, '%')
+        </if>
+        <if test="query.contractNo != null and query.contractNo != ''">
+            AND c.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
+        </if>
+        <if test="query.minArrearsAmount != null">
+            AND (c.paid_amount - COALESCE(c.received_amount, 0)) &gt;= #{query.minArrearsAmount}
+        </if>
+        <if test="query.maxArrearsAmount != null">
+            AND (c.paid_amount - COALESCE(c.received_amount, 0)) &lt;= #{query.maxArrearsAmount}
+        </if>
+        <if test="query.agingRange != null and query.agingRange != ''">
+            <choose>
+                <when test="query.agingRange == '30'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 30
+                </when>
+                <when test="query.agingRange == '30_60'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &gt; 30 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 60
+                </when>
+                <when test="query.agingRange == '60_90'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &gt; 60 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 90
+                </when>
+                <when test="query.agingRange == '90_plus'">
+                    AND DATEDIFF(CURDATE(), c.effective_date) &gt; 90
+                </when>
+            </choose>
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+        ORDER BY arrears_amount DESC, arrears_days DESC
+    </select>
+
+</mapper>

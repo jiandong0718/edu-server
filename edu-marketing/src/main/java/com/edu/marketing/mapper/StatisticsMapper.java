@@ -1,5 +1,7 @@
 package com.edu.marketing.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.edu.marketing.domain.dto.AdvisorPerformanceQueryDTO;
 import com.edu.marketing.domain.dto.ConversionFunnelQueryDTO;
 import com.edu.marketing.domain.vo.AdvisorPerformanceVO;
@@ -14,6 +16,7 @@ import java.util.List;
  * @author edu
  * @since 2024-01-31
  */
+@DS("marketing")
 public interface StatisticsMapper {
 
     /**

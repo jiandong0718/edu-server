@@ -24,6 +24,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     private final JwtTokenUtil jwtTokenUtil;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();

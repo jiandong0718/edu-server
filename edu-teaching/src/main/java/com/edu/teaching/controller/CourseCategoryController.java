@@ -194,6 +194,20 @@ public class CourseCategoryController {
         return R.ok(courseCategoryService.updateById(category));
     }
 
+    @Operation(summary = "更新分类排序")
+    @PutMapping("/{id}/sort")
+    public R<Boolean> updateSort(
+            @Parameter(description = "分类ID") @PathVariable Long id,
+            @Parameter(description = "排序值") @RequestParam Integer sortOrder) {
+        CourseCategory category = courseCategoryService.getById(id);
+        if (category == null) {
+            throw new BusinessException("分类不存在");
+        }
+
+        category.setSortOrder(sortOrder);
+        return R.ok(courseCategoryService.updateById(category));
+    }
+
     /**
      * 构建树形结构
      *

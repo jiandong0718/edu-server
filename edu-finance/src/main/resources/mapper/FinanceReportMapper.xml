@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.FinanceReportMapper">
+
+    <!-- 收入汇总统计 -->
+    <select id="selectRevenueSummary" resultType="com.edu.finance.domain.vo.RevenueSummaryVO">
+        SELECT
+            COALESCE(SUM(p.amount), 0) AS totalRevenue,
+            COUNT(DISTINCT c.id) AS totalContracts,
+            COUNT(DISTINCT c.student_id) AS totalStudents,
+            CASE WHEN COUNT(DISTINCT c.id) > 0
+                THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
+                ELSE 0
+            END AS avgOrderAmount,
+            COALESCE(SUM(CASE WHEN p.payment_method = 'cash' THEN p.amount ELSE 0 END), 0) AS cashRevenue,
+            COALESCE(SUM(CASE WHEN p.payment_method IN ('pos', 'unionpay') THEN p.amount ELSE 0 END), 0) AS transferRevenue,
+            COALESCE(SUM(CASE WHEN p.payment_method IN ('wechat', 'alipay') THEN p.amount ELSE 0 END), 0) AS onlineRevenue
+        FROM fin_payment p
+        INNER JOIN fin_contract c ON p.contract_id = c.id
+        WHERE p.status = 'paid'
+        <if test="query.startDate != null">
+            AND DATE(p.pay_time) &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND DATE(p.pay_time) &lt;= #{query.endDate}
+        </if>
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.courseTypeId != null">
+            AND c.course_type_id = #{query.courseTypeId}
+        </if>
+        <if test="query.paymentMethod != null and query.paymentMethod != ''">
+            AND p.payment_method = #{query.paymentMethod}
+        </if>
+    </select>
+
+    <!-- 按时间维度统计收入 -->
+    <select id="selectRevenueByTime" resultType="com.edu.finance.domain.vo.RevenueReportVO">
+        SELECT
+            <choose>
+                <when test="query.timeDimension == 'day'">
+                    DATE_FORMAT(p.pay_time, '%Y-%m-%d') AS dimensionValue
+                </when>
+                <when test="query.timeDimension == 'week'">
+                    DATE_FORMAT(p.pay_time, '%Y-%u') AS dimensionValue
+                </when>
+                <when test="query.timeDimension == 'month'">
+                    DATE_FORMAT(p.pay_time, '%Y-%m') AS dimensionValue
+                </when>
+                <when test="query.timeDimension == 'quarter'">
+                    CONCAT(YEAR(p.pay_time), '-Q', QUARTER(p.pay_time)) AS dimensionValue
+                </when>
+                <when test="query.timeDimension == 'year'">
+                    YEAR(p.pay_time) AS dimensionValue
+                </when>
+                <otherwise>
+                    DATE_FORMAT(p.pay_time, '%Y-%m-%d') AS dimensionValue
+                </otherwise>
+            </choose>,
+            COALESCE(SUM(p.amount), 0) AS revenueAmount,
+            COUNT(DISTINCT c.id) AS contractCount,
+            COUNT(DISTINCT c.student_id) AS studentCount,
+            CASE WHEN COUNT(DISTINCT c.id) > 0
+                THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
+                ELSE 0
+            END AS avgOrderAmount
+        FROM fin_payment p
+        INNER JOIN fin_contract c ON p.contract_id = c.id
+        WHERE p.status = 'paid'
+        <if test="query.startDate != null">
+            AND DATE(p.pay_time) &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND DATE(p.pay_time) &lt;= #{query.endDate}
+        </if>
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.courseTypeId != null">
+            AND c.course_type_id = #{query.courseTypeId}
+        </if>
+        <if test="query.paymentMethod != null and query.paymentMethod != ''">
+            AND p.payment_method = #{query.paymentMethod}
+        </if>
+        GROUP BY dimensionValue
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'revenueAmount'">
+                ORDER BY revenueAmount ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'contractCount'">
+                ORDER BY contractCount ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY dimensionValue ${query.sortOrder}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 按校区维度统计收入 -->
+    <select id="selectRevenueByCampus" resultType="com.edu.finance.domain.vo.RevenueReportVO">
+        SELECT
+            cam.name AS dimensionValue,
+            COALESCE(SUM(p.amount), 0) AS revenueAmount,
+            COUNT(DISTINCT c.id) AS contractCount,
+            COUNT(DISTINCT c.student_id) AS studentCount,
+            CASE WHEN COUNT(DISTINCT c.id) > 0
+                THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
+                ELSE 0
+            END AS avgOrderAmount
+        FROM fin_payment p
+        INNER JOIN fin_contract c ON p.contract_id = c.id
+        INNER JOIN sys_campus cam ON c.campus_id = cam.id
+        WHERE p.status = 'paid'
+        <if test="query.startDate != null">
+            AND DATE(p.pay_time) &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND DATE(p.pay_time) &lt;= #{query.endDate}
+        </if>
+        <if test="query.courseTypeId != null">
+            AND c.course_type_id = #{query.courseTypeId}
+        </if>
+        <if test="query.paymentMethod != null and query.paymentMethod != ''">
+            AND p.payment_method = #{query.paymentMethod}
+        </if>
+        GROUP BY cam.id, cam.name
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'revenueAmount'">
+                ORDER BY revenueAmount ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'contractCount'">
+                ORDER BY contractCount ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY revenueAmount DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 按课程类型统计收入 -->
+    <select id="selectRevenueByCourseType" resultType="com.edu.finance.domain.vo.RevenueReportVO">
+        SELECT
+            COALESCE(ct.name, '未分类') AS dimensionValue,
+            COALESCE(SUM(p.amount), 0) AS revenueAmount,
+            COUNT(DISTINCT c.id) AS contractCount,
+            COUNT(DISTINCT c.student_id) AS studentCount,
+            CASE WHEN COUNT(DISTINCT c.id) > 0
+                THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
+                ELSE 0
+            END AS avgOrderAmount
+        FROM fin_payment p
+        INNER JOIN fin_contract c ON p.contract_id = c.id
+        LEFT JOIN tch_course_category ct ON c.course_type_id = ct.id
+        WHERE p.status = 'paid'
+        <if test="query.startDate != null">
+            AND DATE(p.pay_time) &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND DATE(p.pay_time) &lt;= #{query.endDate}
+        </if>
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.paymentMethod != null and query.paymentMethod != ''">
+            AND p.payment_method = #{query.paymentMethod}
+        </if>
+        GROUP BY ct.id, ct.name
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'revenueAmount'">
+                ORDER BY revenueAmount ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'contractCount'">
+                ORDER BY contractCount ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY revenueAmount DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 按支付方式统计收入 -->
+    <select id="selectRevenueByPaymentMethod" resultType="com.edu.finance.domain.vo.RevenueReportVO">
+        SELECT
+            CASE p.payment_method
+                WHEN 'cash' THEN '现金'
+                WHEN 'pos' THEN 'POS机'
+                WHEN 'unionpay' THEN '银联'
+                WHEN 'wechat' THEN '微信支付'
+                WHEN 'alipay' THEN '支付宝'
+                ELSE '其他'
+            END AS dimensionValue,
+            COALESCE(SUM(p.amount), 0) AS revenueAmount,
+            COUNT(DISTINCT c.id) AS contractCount,
+            COUNT(DISTINCT c.student_id) AS studentCount,
+            CASE WHEN COUNT(DISTINCT c.id) > 0
+                THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
+                ELSE 0
+            END AS avgOrderAmount
+        FROM fin_payment p
+        INNER JOIN fin_contract c ON p.contract_id = c.id
+        WHERE p.status = 'paid'
+        <if test="query.startDate != null">
+            AND DATE(p.pay_time) &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND DATE(p.pay_time) &lt;= #{query.endDate}
+        </if>
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.courseTypeId != null">
+            AND c.course_type_id = #{query.courseTypeId}
+        </if>
+        GROUP BY p.payment_method
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'revenueAmount'">
+                ORDER BY revenueAmount ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'contractCount'">
+                ORDER BY contractCount ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY revenueAmount DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 课消趋势 -->
+    <select id="selectClassHourTrend" resultType="com.edu.finance.domain.vo.ClassHourTrendVO">
+        SELECT
+            DATE_FORMAT(chr.record_time, '%Y-%m-%d') AS date,
+            COALESCE(SUM(chr.hours), 0) AS consumedHours,
+            COUNT(*) AS consumptionCount,
+            COUNT(DISTINCT chr.student_id) AS studentCount,
+            0 AS consumptionRate
+        FROM fin_class_hour_record chr
+        WHERE chr.record_type = 'consume'
+        <if test="query.startDate != null">
+            AND DATE(chr.record_time) &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND DATE(chr.record_time) &lt;= #{query.endDate}
+        </if>
+        <if test="query.campusId != null">
+            AND chr.campus_id = #{query.campusId}
+        </if>
+        <if test="query.classId != null">
+            AND chr.class_id = #{query.classId}
+        </if>
+        <if test="query.courseId != null">
+            AND chr.course_id = #{query.courseId}
+        </if>
+        <if test="query.teacherId != null">
+            AND chr.teacher_id = #{query.teacherId}
+        </if>
+        GROUP BY DATE_FORMAT(chr.record_time, '%Y-%m-%d')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 按班级统计课消 -->
+    <select id="selectClassHourByClass" resultType="com.edu.finance.domain.vo.ClassHourReportVO">
+        SELECT
+            cls.name AS dimensionValue,
+            cls.id AS dimensionId,
+            COALESCE(SUM(cha.total_hours), 0) AS totalHours,
+            COALESCE(SUM(cha.used_hours), 0) AS consumedHours,
+            COALESCE(SUM(cha.remaining_hours), 0) AS remainingHours,
+            COUNT(DISTINCT cha.student_id) AS studentCount,
+            COUNT(DISTINCT chr.id) AS consumptionCount,
+            CASE WHEN COUNT(DISTINCT chr.id) > 0
+                THEN COALESCE(SUM(chr.hours), 0) / COUNT(DISTINCT chr.id)
+                ELSE 0
+            END AS avgHoursPerConsumption
+        FROM tch_class cls
+        LEFT JOIN fin_class_hour_account cha ON cls.id = cha.class_id
+        LEFT JOIN fin_class_hour_record chr ON cha.id = chr.account_id AND chr.record_type = 'consume'
+        WHERE 1=1
+        <if test="query.startDate != null">
+            AND (chr.record_time IS NULL OR DATE(chr.record_time) &gt;= #{query.startDate})
+        </if>
+        <if test="query.endDate != null">
+            AND (chr.record_time IS NULL OR DATE(chr.record_time) &lt;= #{query.endDate})
+        </if>
+        <if test="query.campusId != null">
+            AND cls.campus_id = #{query.campusId}
+        </if>
+        <if test="query.courseId != null">
+            AND cls.course_id = #{query.courseId}
+        </if>
+        GROUP BY cls.id, cls.name
+        HAVING totalHours > 0
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'consumedHours'">
+                ORDER BY consumedHours ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'consumptionRate'">
+                ORDER BY (consumedHours / totalHours) ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY consumedHours DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 按课程统计课消 -->
+    <select id="selectClassHourByCourse" resultType="com.edu.finance.domain.vo.ClassHourReportVO">
+        SELECT
+            crs.name AS dimensionValue,
+            crs.id AS dimensionId,
+            COALESCE(SUM(cha.total_hours), 0) AS totalHours,
+            COALESCE(SUM(cha.used_hours), 0) AS consumedHours,
+            COALESCE(SUM(cha.remaining_hours), 0) AS remainingHours,
+            COUNT(DISTINCT cha.student_id) AS studentCount,
+            COUNT(DISTINCT chr.id) AS consumptionCount,
+            CASE WHEN COUNT(DISTINCT chr.id) > 0
+                THEN COALESCE(SUM(chr.hours), 0) / COUNT(DISTINCT chr.id)
+                ELSE 0
+            END AS avgHoursPerConsumption
+        FROM tch_course crs
+        LEFT JOIN tch_class cls ON crs.id = cls.course_id
+        LEFT JOIN fin_class_hour_account cha ON cls.id = cha.class_id
+        LEFT JOIN fin_class_hour_record chr ON cha.id = chr.account_id AND chr.record_type = 'consume'
+        WHERE 1=1
+        <if test="query.startDate != null">
+            AND (chr.record_time IS NULL OR DATE(chr.record_time) &gt;= #{query.startDate})
+        </if>
+        <if test="query.endDate != null">
+            AND (chr.record_time IS NULL OR DATE(chr.record_time) &lt;= #{query.endDate})
+        </if>
+        <if test="query.campusId != null">
+            AND crs.campus_id = #{query.campusId}
+        </if>
+        GROUP BY crs.id, crs.name
+        HAVING totalHours > 0
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'consumedHours'">
+                ORDER BY consumedHours ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'consumptionRate'">
+                ORDER BY (consumedHours / totalHours) ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY consumedHours DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 按教师统计课消 -->
+    <select id="selectClassHourByTeacher" resultType="com.edu.finance.domain.vo.ClassHourReportVO">
+        SELECT
+            t.name AS dimensionValue,
+            t.id AS dimensionId,
+            COALESCE(SUM(chr.hours), 0) AS consumedHours,
+            COUNT(DISTINCT chr.student_id) AS studentCount,
+            COUNT(DISTINCT chr.id) AS consumptionCount,
+            CASE WHEN COUNT(DISTINCT chr.id) > 0
+                THEN COALESCE(SUM(chr.hours), 0) / COUNT(DISTINCT chr.id)
+                ELSE 0
+            END AS avgHoursPerConsumption,
+            0 AS totalHours,
+            0 AS remainingHours
+        FROM tch_teacher t
+        LEFT JOIN fin_class_hour_record chr ON t.id = chr.teacher_id AND chr.record_type = 'consume'
+        WHERE 1=1
+        <if test="query.startDate != null">
+            AND (chr.record_time IS NULL OR DATE(chr.record_time) &gt;= #{query.startDate})
+        </if>
+        <if test="query.endDate != null">
+            AND (chr.record_time IS NULL OR DATE(chr.record_time) &lt;= #{query.endDate})
+        </if>
+        <if test="query.campusId != null">
+            AND t.campus_id = #{query.campusId}
+        </if>
+        GROUP BY t.id, t.name
+        HAVING consumedHours > 0
+        <choose>
+            <when test="query.sortField != null and query.sortField == 'consumedHours'">
+                ORDER BY consumedHours ${query.sortOrder}
+            </when>
+            <when test="query.sortField != null and query.sortField == 'consumptionCount'">
+                ORDER BY consumptionCount ${query.sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY consumedHours DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 课消汇总统计 -->
+    <select id="selectClassHourSummary" resultType="com.edu.finance.domain.vo.ClassHourSummaryVO">
+        SELECT
+            COALESCE(SUM(cha.total_hours), 0) AS totalHours,
+            COALESCE(SUM(cha.used_hours), 0) AS usedHours,
+            COALESCE(SUM(cha.remaining_hours), 0) AS remainingHours,
+            CASE WHEN SUM(cha.total_hours) > 0
+                THEN (SUM(cha.used_hours) / SUM(cha.total_hours)) * 100
+                ELSE 0
+            END AS consumptionRate,
+            COUNT(CASE WHEN cha.remaining_hours &lt; cha.warning_threshold THEN 1 END) AS warningCount
+        FROM fin_class_hour_account cha
+        WHERE 1=1
+        <if test="query.campusId != null">
+            AND cha.campus_id = #{query.campusId}
+        </if>
+        <if test="query.classId != null">
+            AND cha.class_id = #{query.classId}
+        </if>
+        <if test="query.courseId != null">
+            AND cha.course_id = #{query.courseId}
+        </if>
+    </select>
+
+</mapper>

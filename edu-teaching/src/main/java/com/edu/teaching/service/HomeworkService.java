@@ -3,6 +3,7 @@ package com.edu.teaching.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.edu.teaching.domain.entity.Homework;
+import com.edu.teaching.domain.vo.HomeworkStatsVO;
 
 /**
  * 作业服务接口
@@ -33,4 +34,9 @@ public interface HomeworkService extends IService<Homework> {
      * 删除作业
      */
     boolean deleteHomework(Long id);
+
+    /**
+     * 获取作业统计信息
+     */
+    HomeworkStatsVO getHomeworkStats(Long homeworkId);
 }

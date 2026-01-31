@@ -1,5 +1,7 @@
 package com.edu.system.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import org.apache.ibatis.annotations.Param;
 
 import java.math.BigDecimal;
@@ -10,6 +12,7 @@ import java.util.Map;
 /**
  * 数据看板统计 Mapper
  */
+@DS("system")
 public interface DashboardMapper {
 
     // ========== 学员统计 ==========

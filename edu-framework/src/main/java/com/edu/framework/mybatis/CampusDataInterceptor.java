@@ -33,6 +33,8 @@ import java.sql.SQLException;
 @Slf4j
 public class CampusDataInterceptor implements InnerInterceptor {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CampusDataInterceptor.class);
+
     private static final String CAMPUS_ID_COLUMN = "campus_id";
 
     @Override

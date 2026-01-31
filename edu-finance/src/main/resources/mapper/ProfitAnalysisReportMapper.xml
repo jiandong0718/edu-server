@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ProfitAnalysisReportMapper">
+
+    <!-- 利润分析概览 -->
+    <select id="selectProfitAnalysisOverview" resultType="com.edu.finance.domain.vo.ProfitAnalysisOverviewVO">
+        SELECT
+            SUM(c.received_amount) as totalRevenue,
+            SUM(COALESCE(c.total_hours, 0) * 50) as totalCost,
+            SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
+            CASE
+                WHEN SUM(c.received_amount) > 0 THEN
+                    ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
+                ELSE 0
+            END as grossProfitMargin,
+            COUNT(*) as contractCount,
+            COUNT(DISTINCT c.student_id) as studentCount,
+            AVG(c.received_amount) as avgContractAmount
+        FROM fin_contract c
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.received_amount > 0
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+    </select>
+
+    <!-- 按校区分析利润 -->
+    <select id="selectCampusProfitAnalysis" resultType="com.edu.finance.domain.vo.CampusProfitAnalysisVO">
+        SELECT
+            c.campus_id as campusId,
+            campus.name as campusName,
+            SUM(c.received_amount) as revenue,
+            SUM(COALESCE(c.total_hours, 0) * 50) as cost,
+            SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
+            CASE
+                WHEN SUM(c.received_amount) > 0 THEN
+                    ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
+                ELSE 0
+            END as grossProfitMargin,
+            COUNT(*) as contractCount,
+            COUNT(DISTINCT c.student_id) as studentCount
+        FROM fin_contract c
+        LEFT JOIN sys_campus campus ON c.campus_id = campus.id
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.received_amount > 0
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+        GROUP BY c.campus_id, campus.name
+        ORDER BY revenue DESC
+    </select>
+
+    <!-- 按课程类型分析利润 -->
+    <select id="selectCourseTypeProfitAnalysis" resultType="com.edu.finance.domain.vo.CourseTypeProfitAnalysisVO">
+        SELECT
+            ci.course_id as courseTypeId,
+            '课程' as courseTypeName,
+            SUM(c.received_amount) as revenue,
+            SUM(COALESCE(c.total_hours, 0) * 50) as cost,
+            SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
+            CASE
+                WHEN SUM(c.received_amount) > 0 THEN
+                    ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
+                ELSE 0
+            END as grossProfitMargin,
+            COUNT(DISTINCT c.id) as contractCount,
+            COUNT(DISTINCT c.student_id) as studentCount
+        FROM fin_contract c
+        LEFT JOIN fin_contract_item ci ON c.id = ci.contract_id
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.received_amount > 0
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.courseTypeId != null">
+            AND ci.course_id = #{query.courseTypeId}
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+        GROUP BY ci.course_id
+        ORDER BY revenue DESC
+    </select>
+
+    <!-- 按月查询利润趋势 -->
+    <select id="selectProfitTrendByMonth" resultType="com.edu.finance.domain.vo.ProfitTrendVO">
+        SELECT
+            DATE_FORMAT(c.sign_date, '%Y-%m') as date,
+            SUM(c.received_amount) as revenue,
+            SUM(COALESCE(c.total_hours, 0) * 50) as cost,
+            SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
+            CASE
+                WHEN SUM(c.received_amount) > 0 THEN
+                    ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
+                ELSE 0
+            END as grossProfitMargin,
+            COUNT(*) as contractCount
+        FROM fin_contract c
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.received_amount > 0
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+        GROUP BY DATE_FORMAT(c.sign_date, '%Y-%m')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 按日查询利润趋势 -->
+    <select id="selectProfitTrendByDay" resultType="com.edu.finance.domain.vo.ProfitTrendVO">
+        SELECT
+            DATE_FORMAT(c.sign_date, '%Y-%m-%d') as date,
+            SUM(c.received_amount) as revenue,
+            SUM(COALESCE(c.total_hours, 0) * 50) as cost,
+            SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
+            CASE
+                WHEN SUM(c.received_amount) > 0 THEN
+                    ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
+                ELSE 0
+            END as grossProfitMargin,
+            COUNT(*) as contractCount
+        FROM fin_contract c
+        WHERE c.deleted = 0
+          AND c.status IN ('signed', 'completed')
+          AND c.received_amount > 0
+        <if test="query.campusId != null">
+            AND c.campus_id = #{query.campusId}
+        </if>
+        <if test="query.startDate != null">
+            AND c.sign_date &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND c.sign_date &lt;= #{query.endDate}
+        </if>
+        GROUP BY DATE_FORMAT(c.sign_date, '%Y-%m-%d')
+        ORDER BY date ASC
+    </select>
+
+</mapper>

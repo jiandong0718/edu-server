@@ -61,4 +61,29 @@
         ORDER BY h.create_time DESC
     </select>
 
+    <select id="selectHomeworkStats" resultType="com.edu.teaching.domain.vo.HomeworkStatsVO">
+        SELECT
+            h.id as homeworkId,
+            h.title as homeworkTitle,
+            h.class_id as classId,
+            cl.name as className,
+            (SELECT COUNT(*) FROM tch_class_student cs WHERE cs.class_id = h.class_id AND cs.status = 'active') as totalStudents,
+            COUNT(DISTINCT hs.id) as submittedCount,
+            SUM(CASE WHEN hs.status = 'pending' THEN 1 ELSE 0 END) as pendingCount,
+            SUM(CASE WHEN hs.status = 'reviewed' THEN 1 ELSE 0 END) as reviewedCount,
+            SUM(CASE WHEN hs.status = 'returned' THEN 1 ELSE 0 END) as returnedCount,
+            (SELECT COUNT(*) FROM tch_class_student cs WHERE cs.class_id = h.class_id AND cs.status = 'active') - COUNT(DISTINCT hs.id) as notSubmittedCount,
+            ROUND(COUNT(DISTINCT hs.id) * 100.0 / NULLIF((SELECT COUNT(*) FROM tch_class_student cs WHERE cs.class_id = h.class_id AND cs.status = 'active'), 0), 2) as submitRate,
+            ROUND(AVG(CASE WHEN hs.score IS NOT NULL THEN hs.score ELSE NULL END), 2) as averageScore,
+            MAX(hs.score) as maxScore,
+            MIN(hs.score) as minScore,
+            ROUND(SUM(CASE WHEN hs.grade = 'A' THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN hs.status = 'reviewed' THEN 1 ELSE 0 END), 0), 2) as excellentRate,
+            ROUND(SUM(CASE WHEN hs.grade IN ('A', 'B', 'C') THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN hs.status = 'reviewed' THEN 1 ELSE 0 END), 0), 2) as passRate
+        FROM tch_homework h
+        LEFT JOIN tch_class cl ON h.class_id = cl.id
+        LEFT JOIN tch_homework_submit hs ON h.id = hs.homework_id AND hs.deleted = 0
+        WHERE h.id = #{homeworkId} AND h.deleted = 0
+        GROUP BY h.id, h.title, h.class_id, cl.name
+    </select>
+
 </mapper>

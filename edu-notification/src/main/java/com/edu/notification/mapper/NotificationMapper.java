@@ -1,5 +1,7 @@
 package com.edu.notification.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.edu.notification.domain.entity.Notification;
@@ -8,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 /**
  * 通知消息 Mapper
  */
+@DS("marketing")
 public interface NotificationMapper extends BaseMapper<Notification> {
 
     /**

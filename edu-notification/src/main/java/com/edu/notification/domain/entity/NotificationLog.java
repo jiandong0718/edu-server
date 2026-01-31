@@ -28,6 +28,11 @@ public class NotificationLog extends BaseEntity {
     private String type;
 
     /**
+     * 发送渠道：site-站内信，sms-短信，wechat-微信，email-邮件
+     */
+    private String channel;
+
+    /**
      * 接收人（手机号/邮箱/用户ID）
      */
     private String receiver;

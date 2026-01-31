@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.common.exception.BusinessException;
 import com.edu.teaching.domain.entity.Homework;
+import com.edu.teaching.domain.vo.HomeworkStatsVO;
 import com.edu.teaching.mapper.HomeworkMapper;
 import com.edu.teaching.service.HomeworkService;
 import lombok.RequiredArgsConstructor;
@@ -69,5 +70,10 @@ public class HomeworkServiceImpl extends ServiceImpl<HomeworkMapper, Homework> i
         }
 
         return removeById(id);
+    }
+
+    @Override
+    public HomeworkStatsVO getHomeworkStats(Long homeworkId) {
+        return baseMapper.selectHomeworkStats(homeworkId);
     }
 }

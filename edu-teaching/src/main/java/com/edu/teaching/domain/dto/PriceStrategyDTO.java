@@ -1,9 +1,11 @@
 package com.edu.teaching.domain.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 价格策略创建/更新DTO
@@ -19,55 +21,60 @@ public class PriceStrategyDTO {
     /**
      * 策略名称
      */
-    private String name;
+    @NotBlank(message = "策略名称不能为空")
+    private String strategyName;
 
     /**
-     * 策略类型：time_period-时间段，student_type-学员类型
+     * 策略编码（唯一）
      */
-    private String type;
+    @NotBlank(message = "策略编码不能为空")
+    private String strategyCode;
 
     /**
-     * 目标ID（课程ID或课程包ID）
+     * 策略描述
      */
-    private Long targetId;
+    private String description;
 
     /**
-     * 目标类型：course-课程，package-课程包
+     * 关联课程ID（可为空表示通用策略）
      */
-    private String targetType;
+    private Long courseId;
 
     /**
-     * 折扣类型：percentage-百分比，fixed-固定金额
+     * 策略类型：TIERED-阶梯价格, MEMBER-会员价, PROMOTION-促销价, CUSTOM-自定义
      */
-    private String discountType;
+    @NotBlank(message = "策略类型不能为空")
+    private String strategyType;
 
     /**
-     * 折扣值（百分比：0-100，固定金额：具体金额）
+     * 优先级（数字越大优先级越高）
      */
-    private BigDecimal discountValue;
+    @NotNull(message = "优先级不能为空")
+    private Integer priority;
 
     /**
-     * 开始日期
+     * 有效期开始日期
      */
     private LocalDate startDate;
 
     /**
-     * 结束日期
+     * 有效期结束日期
      */
     private LocalDate endDate;
 
     /**
-     * 学员类型：new-新生，old-老生（仅当type为student_type时有效）
+     * 状态：ACTIVE-启用, INACTIVE-禁用
      */
-    private String studentType;
+    private String status;
 
     /**
-     * 状态：0-禁用，1-启用
-     */
-    private Integer status;
-
-    /**
-     * 校区ID
+     * 校区ID（null表示全部校区可用）
      */
     private Long campusId;
+
+    /**
+     * 策略规则列表
+     */
+    @NotNull(message = "策略规则不能为空")
+    private List<PriceStrategyRuleDTO> rules;
 }

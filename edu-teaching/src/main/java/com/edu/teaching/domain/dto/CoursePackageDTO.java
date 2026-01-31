@@ -22,9 +22,19 @@ public class CoursePackageDTO {
     private String name;
 
     /**
+     * 课程包编码
+     */
+    private String packageCode;
+
+    /**
      * 课程包描述
      */
     private String description;
+
+    /**
+     * 封面图片URL
+     */
+    private String coverImage;
 
     /**
      * 课程包价格（优惠价）
@@ -37,9 +47,19 @@ public class CoursePackageDTO {
     private BigDecimal originalPrice;
 
     /**
+     * 折扣（如8.5表示8.5折）
+     */
+    private BigDecimal discount;
+
+    /**
      * 有效天数
      */
     private Integer validDays;
+
+    /**
+     * 总课时数
+     */
+    private Integer totalClassHours;
 
     /**
      * 状态：0-下架，1-上架

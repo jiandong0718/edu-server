@@ -77,15 +77,26 @@ spring:
 # 日志配置
 logging:
   level:
+    root: info
     com.edu: info
+    com.edu.system: info
+    com.edu.student: info
+    com.edu.teaching: info
+    com.edu.finance: info
+    com.edu.marketing: info
+    com.edu.notification: info
     org.springframework: warn
+    org.springframework.web: warn
+    org.springframework.security: warn
+    org.mybatis: warn
+    com.baomidou.mybatisplus: warn
   file:
-    name: /app/logs/edu-admin.log
-  logback:
-    rollingpolicy:
-      max-file-size: 100MB
-      max-history: 30
-      total-size-cap: 3GB
+    path: /data/logs
+    name: /data/logs/edu-admin-api/application.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
 
 # JWT 配置
 jwt:

@@ -1,5 +1,6 @@
 package com.edu.system.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.system.domain.entity.SysUser;
 import org.apache.ibatis.annotations.Param;
@@ -9,6 +10,7 @@ import java.util.List;
 /**
  * 用户 Mapper
  */
+@DS("system")
 public interface SysUserMapper extends BaseMapper<SysUser> {
 
     /**

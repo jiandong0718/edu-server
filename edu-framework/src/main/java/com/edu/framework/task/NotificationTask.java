@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class NotificationTask {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NotificationTask.class);
+
     // private final NotificationService notificationService;
     // private final ScheduleService scheduleService;
     // private final ContractService contractService;

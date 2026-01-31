@@ -19,9 +19,29 @@ public class SysClassroom extends BaseEntity {
     private String name;
 
     /**
+     * 教室编码
+     */
+    private String code;
+
+    /**
      * 校区ID
      */
     private Long campusId;
+
+    /**
+     * 所属楼栋
+     */
+    private String building;
+
+    /**
+     * 楼层
+     */
+    private Integer floor;
+
+    /**
+     * 房间号
+     */
+    private String roomNo;
 
     /**
      * 容纳人数
@@ -29,8 +49,19 @@ public class SysClassroom extends BaseEntity {
     private Integer capacity;
 
     /**
-     * 设备配置
+     * 面积(平方米)
      */
+    private java.math.BigDecimal area;
+
+    /**
+     * 设施配置(JSON数组)
+     */
+    private String facilities;
+
+    /**
+     * 设备配置(已废弃，使用facilities)
+     */
+    @Deprecated
     private String equipment;
 
     /**

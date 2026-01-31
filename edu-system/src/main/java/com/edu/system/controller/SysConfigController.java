@@ -1,21 +1,25 @@
 package com.edu.system.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.system.domain.dto.SysConfigBatchUpdateDTO;
+import com.edu.system.domain.dto.SysConfigDTO;
+import com.edu.system.domain.dto.SysConfigQueryDTO;
 import com.edu.system.domain.entity.SysConfig;
 import com.edu.system.service.SysConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 /**
- * 系统配置控制器
+ * 系统参数配置控制器
  */
-@Tag(name = "系统配置")
+@Tag(name = "系统参数配置")
 @RestController
 @RequestMapping("/system/config")
 @RequiredArgsConstructor
@@ -28,23 +32,30 @@ public class SysConfigController {
     public R<Page<SysConfig>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String configName,
-            @RequestParam(required = false) String configKey,
-            @RequestParam(required = false) String category) {
+            SysConfigQueryDTO queryDTO) {
         Page<SysConfig> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<SysConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(configName != null, SysConfig::getConfigName, configName)
-                .like(configKey != null, SysConfig::getConfigKey, configKey)
-                .eq(category != null, SysConfig::getCategory, category)
-                .orderByDesc(SysConfig::getCreateTime);
-        configService.page(page, wrapper);
+        configService.pageList(page, queryDTO);
         return R.ok(page);
     }
 
     @Operation(summary = "获取所有配置列表")
     @GetMapping("/list")
-    public R<List<SysConfig>> list() {
-        return R.ok(configService.list());
+    public R<List<SysConfig>> list(SysConfigQueryDTO queryDTO) {
+        Page<SysConfig> page = new Page<>(1, 1000);
+        configService.pageList(page, queryDTO);
+        return R.ok(page.getRecords());
+    }
+
+    @Operation(summary = "根据分组查询配置列表")
+    @GetMapping("/group/{configGroup}")
+    public R<List<SysConfig>> listByGroup(@PathVariable String configGroup) {
+        return R.ok(configService.listByGroup(configGroup));
+    }
+
+    @Operation(summary = "获取所有分组")
+    @GetMapping("/groups")
+    public R<List<String>> listGroups() {
+        return R.ok(configService.listGroups());
     }
 
     @Operation(summary = "根据配置键获取配置值")
@@ -62,29 +73,29 @@ public class SysConfigController {
 
     @Operation(summary = "新增配置")
     @PostMapping
-    public R<Boolean> add(@RequestBody SysConfig config) {
-        if (!configService.checkConfigKeyUnique(config.getConfigKey(), null)) {
-            return R.fail("配置键已存在");
-        }
+    public R<Boolean> add(@Validated @RequestBody SysConfigDTO configDTO) {
+        SysConfig config = new SysConfig();
+        BeanUtils.copyProperties(configDTO, config);
         return R.ok(configService.save(config));
     }
 
     @Operation(summary = "修改配置")
     @PutMapping
-    public R<Boolean> update(@RequestBody SysConfig config) {
-        if (!configService.checkConfigKeyUnique(config.getConfigKey(), config.getId())) {
-            return R.fail("配置键已存在");
-        }
+    public R<Boolean> update(@Validated @RequestBody SysConfigDTO configDTO) {
+        SysConfig config = new SysConfig();
+        BeanUtils.copyProperties(configDTO, config);
         return R.ok(configService.updateById(config));
+    }
+
+    @Operation(summary = "批量更新配置")
+    @PutMapping("/batch")
+    public R<Boolean> batchUpdate(@Validated @RequestBody SysConfigBatchUpdateDTO batchUpdateDTO) {
+        return R.ok(configService.batchUpdate(batchUpdateDTO));
     }
 
     @Operation(summary = "删除配置")
     @DeleteMapping("/{id}")
     public R<Boolean> delete(@PathVariable Long id) {
-        SysConfig config = configService.getById(id);
-        if (config != null && config.getIsSystem() == 1) {
-            return R.fail("系统内置配置不能删除");
-        }
         return R.ok(configService.removeById(id));
     }
 
@@ -93,10 +104,31 @@ public class SysConfigController {
     public R<Boolean> deleteBatch(@RequestBody List<Long> ids) {
         // 检查是否包含系统配置
         List<SysConfig> configs = configService.listByIds(ids);
-        boolean hasSystemConfig = configs.stream().anyMatch(c -> c.getIsSystem() == 1);
+        boolean hasSystemConfig = configs.stream()
+            .anyMatch(c -> c.getIsSystem() != null && c.getIsSystem() == 1);
         if (hasSystemConfig) {
             return R.fail("不能删除系统内置配置");
         }
         return R.ok(configService.removeByIds(ids));
+    }
+
+    @Operation(summary = "重置为默认值")
+    @PutMapping("/{id}/reset")
+    public R<Boolean> resetToDefault(@PathVariable Long id) {
+        return R.ok(configService.resetToDefault(id));
+    }
+
+    @Operation(summary = "刷新缓存")
+    @PostMapping("/cache/refresh")
+    public R<Void> refreshCache() {
+        configService.refreshCache();
+        return R.ok();
+    }
+
+    @Operation(summary = "清除缓存")
+    @DeleteMapping("/cache")
+    public R<Void> clearCache() {
+        configService.clearCache();
+        return R.ok();
     }
 }

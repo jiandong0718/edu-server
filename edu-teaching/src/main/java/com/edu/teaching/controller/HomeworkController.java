@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.Result;
 import com.edu.teaching.domain.entity.Homework;
 import com.edu.teaching.domain.entity.HomeworkSubmit;
+import com.edu.teaching.domain.vo.HomeworkStatsVO;
 import com.edu.teaching.service.HomeworkService;
 import com.edu.teaching.service.HomeworkSubmitService;
 import lombok.RequiredArgsConstructor;
@@ -95,6 +96,14 @@ public class HomeworkController {
     @GetMapping("/{id}/submits")
     public Result<List<HomeworkSubmit>> getSubmits(@PathVariable Long id) {
         return Result.success(homeworkSubmitService.getByHomeworkId(id));
+    }
+
+    /**
+     * 获取作业统计信息
+     */
+    @GetMapping("/{id}/stats")
+    public Result<HomeworkStatsVO> getStats(@PathVariable Long id) {
+        return Result.success(homeworkService.getHomeworkStats(id));
     }
 
     /**

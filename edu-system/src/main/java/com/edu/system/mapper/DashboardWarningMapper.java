@@ -1,5 +1,7 @@
 package com.edu.system.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.system.domain.entity.WarningConfig;
 import com.edu.system.domain.vo.WarningVO;
@@ -10,6 +12,7 @@ import java.util.List;
 /**
  * 数据预警 Mapper
  */
+@DS("system")
 public interface DashboardWarningMapper extends BaseMapper<WarningConfig> {
 
     /**

@@ -11,6 +11,8 @@ import java.util.List;
 @Data
 public class LoginUser implements Serializable {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LoginUser.class);
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -72,4 +74,102 @@ public class LoginUser implements Serializable {
      * Token
      */
     private String token;
+
+    // Getter methods (Lombok @Data not working with Java 23)
+    public Long getUserId() {
+        return userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public Long getCampusId() {
+        return campusId;
+    }
+
+    public String getCampusName() {
+        return campusName;
+    }
+
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
+    }
+
+    public Long getLoginTime() {
+        return loginTime;
+    }
+
+    public Long getExpireTime() {
+        return expireTime;
+    }
+
+    public String getLoginIp() {
+        return loginIp;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    // Setter methods
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
+    }
+
+    public void setCampusId(Long campusId) {
+        this.campusId = campusId;
+    }
+
+    public void setCampusName(String campusName) {
+        this.campusName = campusName;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
+    }
+
+    public void setLoginTime(Long loginTime) {
+        this.loginTime = loginTime;
+    }
+
+    public void setExpireTime(Long expireTime) {
+        this.expireTime = expireTime;
+    }
+
+    public void setLoginIp(String loginIp) {
+        this.loginIp = loginIp;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
 }

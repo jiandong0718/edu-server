@@ -32,6 +32,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OperationLogAspect {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OperationLogAspect.class);
+
     // private final SysOperationLogService operationLogService;
 
     private static final ThreadLocal<Long> START_TIME = new ThreadLocal<>();

@@ -21,6 +21,8 @@ import java.util.function.Consumer;
 @Slf4j
 public class ExcelUtil {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ExcelUtil.class);
+
     private ExcelUtil() {
     }
 

@@ -1,5 +1,7 @@
 package com.edu.finance.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.finance.domain.entity.ContractItem;
 import org.apache.ibatis.annotations.Param;
@@ -9,6 +11,7 @@ import java.util.List;
 /**
  * 合同明细 Mapper
  */
+@DS("finance")
 public interface ContractItemMapper extends BaseMapper<ContractItem> {
 
     /**

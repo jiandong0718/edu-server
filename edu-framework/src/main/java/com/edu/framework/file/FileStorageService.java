@@ -25,6 +25,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileStorageService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileStorageService.class);
+
     private final FileStorageProperties properties;
 
     /**

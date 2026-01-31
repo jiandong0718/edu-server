@@ -8,6 +8,10 @@ spring:
     active: dev
   application:
     name: edu-admin-api
+  # 排除 Druid 自动配置，使用动态数据源
+  autoconfigure:
+    exclude:
+      - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
 
   # Jackson 配置
   jackson:

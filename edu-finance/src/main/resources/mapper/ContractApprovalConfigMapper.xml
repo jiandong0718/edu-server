@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.edu.finance.mapper.ContractApprovalConfigMapper">
+
+    <select id="selectByTypeAndAmount" resultType="com.edu.finance.domain.entity.ContractApprovalConfig">
+        SELECT *
+        FROM fin_contract_approval_config
+        WHERE deleted = 0
+          AND is_enabled = 1
+          AND approval_type = #{approvalType}
+          AND amount_min &lt;= #{amount}
+          AND (amount_max IS NULL OR amount_max &gt;= #{amount})
+        ORDER BY priority DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectEnabledList" resultType="com.edu.finance.domain.entity.ContractApprovalConfig">
+        SELECT *
+        FROM fin_contract_approval_config
+        WHERE deleted = 0
+          AND is_enabled = 1
+          <if test="approvalType != null and approvalType != ''">
+              AND approval_type = #{approvalType}
+          </if>
+        ORDER BY priority DESC, id ASC
+    </select>
+
+</mapper>

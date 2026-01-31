@@ -15,6 +15,8 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 @EnableScheduling
 public class ScheduleConfig implements SchedulingConfigurer {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class);
+
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();

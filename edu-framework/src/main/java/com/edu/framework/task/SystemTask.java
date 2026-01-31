@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Component
 public class SystemTask {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SystemTask.class);
+
     /**
      * 清理过期 Token - 每天凌晨2点执行
      */

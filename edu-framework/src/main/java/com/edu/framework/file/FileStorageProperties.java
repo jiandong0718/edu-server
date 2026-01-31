@@ -37,6 +37,48 @@ public class FileStorageProperties {
      */
     private int maxSize = 50;
 
+    // Getter methods (Lombok @Data not working with Java 23)
+    public String getStorageType() {
+        return storageType;
+    }
+
+    public LocalConfig getLocal() {
+        return local;
+    }
+
+    public OssConfig getOss() {
+        return oss;
+    }
+
+    public String[] getAllowedTypes() {
+        return allowedTypes;
+    }
+
+    public int getMaxSize() {
+        return maxSize;
+    }
+
+    // Setter methods
+    public void setStorageType(String storageType) {
+        this.storageType = storageType;
+    }
+
+    public void setLocal(LocalConfig local) {
+        this.local = local;
+    }
+
+    public void setOss(OssConfig oss) {
+        this.oss = oss;
+    }
+
+    public void setAllowedTypes(String[] allowedTypes) {
+        this.allowedTypes = allowedTypes;
+    }
+
+    public void setMaxSize(int maxSize) {
+        this.maxSize = maxSize;
+    }
+
     @Data
     public static class LocalConfig {
         /**
@@ -48,6 +90,24 @@ public class FileStorageProperties {
          * 访问URL前缀
          */
         private String baseUrl = "/files";
+    
+        // Getter and Setter methods (Lombok @Data not working with Java 23)
+        public String getBasePath() {
+            return basePath;
+        }
+
+        public void setBasePath(String basePath) {
+            this.basePath = basePath;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
     }
 
     @Data
@@ -81,5 +141,55 @@ public class FileStorageProperties {
          * 访问域名
          */
         private String domain;
+    
+        // Getter and Setter methods (Lombok @Data not working with Java 23)
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public String getAccessKey() {
+            return accessKey;
+        }
+
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
+
+        public String getSecretKey() {
+            return secretKey;
+        }
+
+        public void setSecretKey(String secretKey) {
+            this.secretKey = secretKey;
+        }
+
+        public String getBucket() {
+            return bucket;
+        }
+
+        public void setBucket(String bucket) {
+            this.bucket = bucket;
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
+        }
+
     }
 }

@@ -2,7 +2,9 @@ package com.edu.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.edu.common.core.R;
+import com.edu.finance.domain.dto.ApprovalRecordDTO;
 import com.edu.finance.domain.dto.ContractApprovalProcessDTO;
+import com.edu.finance.domain.dto.ContractApprovalQueryDTO;
 import com.edu.finance.domain.dto.ContractApprovalSubmitDTO;
 import com.edu.finance.domain.dto.ContractPrintDTO;
 import com.edu.finance.domain.entity.Contract;
@@ -10,6 +12,7 @@ import com.edu.finance.domain.entity.ContractApproval;
 import com.edu.finance.domain.entity.ContractApprovalFlow;
 import com.edu.finance.domain.entity.ContractPrintRecord;
 import com.edu.finance.domain.entity.ContractPrintTemplate;
+import com.edu.finance.domain.vo.ContractApprovalVO;
 import com.edu.finance.service.ContractApprovalService;
 import com.edu.finance.service.ContractPdfGeneratorService;
 import com.edu.finance.service.ContractPdfService;
@@ -149,6 +152,50 @@ public class ContractController {
         Long approverId = SecurityContextHolder.getUserId();
         List<ContractApproval> approvals = contractApprovalService.getPendingApprovals(approverId);
         return R.ok(approvals);
+    }
+
+    @Operation(summary = "分页查询待审批列表")
+    @GetMapping("/approval/pending/page")
+    public R<Page<ContractApprovalVO>> getPendingApprovalsPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        Long approverId = SecurityContextHolder.getUserId();
+        Page<ContractApprovalVO> page = new Page<>(pageNum, pageSize);
+        contractApprovalService.getPendingApprovalsPage(page, approverId);
+        return R.ok(page);
+    }
+
+    @Operation(summary = "分页查询审批记录")
+    @GetMapping("/approval/page")
+    public R<Page<ContractApprovalVO>> getApprovalPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            ContractApprovalQueryDTO queryDTO) {
+        Page<ContractApprovalVO> page = new Page<>(pageNum, pageSize);
+        contractApprovalService.getApprovalPage(page, queryDTO);
+        return R.ok(page);
+    }
+
+    @Operation(summary = "获取审批详情")
+    @GetMapping("/approval/{id}/detail")
+    public R<ContractApprovalVO> getApprovalDetail(@PathVariable Long id) {
+        ContractApprovalVO detail = contractApprovalService.getApprovalDetail(id);
+        return R.ok(detail);
+    }
+
+    @Operation(summary = "获取审批记录时间线")
+    @GetMapping("/approval/{id}/timeline")
+    public R<List<ApprovalRecordDTO>> getApprovalTimeline(@PathVariable Long id) {
+        List<ApprovalRecordDTO> timeline = contractApprovalService.getApprovalTimeline(id);
+        return R.ok(timeline);
+    }
+
+    @Operation(summary = "检查审批权限")
+    @GetMapping("/approval/{id}/check-permission")
+    public R<Boolean> checkApprovalPermission(@PathVariable Long id) {
+        Long userId = SecurityContextHolder.getUserId();
+        Boolean hasPermission = contractApprovalService.checkApprovalPermission(id, userId);
+        return R.ok(hasPermission);
     }
 
     // ==================== 打印相关接口 ====================

@@ -1,5 +1,7 @@
 package com.edu.system.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDate;
@@ -9,6 +11,7 @@ import java.util.Map;
 /**
  * 招生数据看板 Mapper
  */
+@DS("system")
 public interface EnrollmentDashboardMapper {
 
     // ========== 线索统计 ==========

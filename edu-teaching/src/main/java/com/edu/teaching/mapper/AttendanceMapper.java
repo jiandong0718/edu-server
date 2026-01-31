@@ -1,5 +1,7 @@
 package com.edu.teaching.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.edu.teaching.domain.entity.Attendance;
@@ -11,6 +13,7 @@ import java.util.List;
 /**
  * 考勤 Mapper
  */
+@DS("teaching")
 public interface AttendanceMapper extends BaseMapper<Attendance> {
 
     /**

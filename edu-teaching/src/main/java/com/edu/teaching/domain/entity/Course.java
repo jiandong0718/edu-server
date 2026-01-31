@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 课程实体
@@ -81,9 +82,19 @@ public class Course extends BaseEntity {
     private Integer maxAge;
 
     /**
-     * 状态：0-下架，1-上架
+     * 状态：DRAFT-草稿，ON_SALE-在售，OFF_SALE-已下架
      */
-    private Integer status;
+    private String status;
+
+    /**
+     * 上架时间
+     */
+    private LocalDateTime onSaleTime;
+
+    /**
+     * 下架时间
+     */
+    private LocalDateTime offSaleTime;
 
     /**
      * 排序
