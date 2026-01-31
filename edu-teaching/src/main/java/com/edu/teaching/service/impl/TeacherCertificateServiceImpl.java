@@ -15,6 +15,7 @@ import com.edu.teaching.mapper.TeacherCertificateMapper;
 import com.edu.teaching.mapper.TeacherMapper;
 import com.edu.teaching.service.TeacherCertificateService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 /**
  * 教师资质证书服务实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TeacherCertificateServiceImpl extends ServiceImpl<TeacherCertificateMapper, TeacherCertificate> implements TeacherCertificateService {

@@ -21,5 +21,17 @@
             <groupId>com.edu</groupId>
             <artifactId>edu-framework</artifactId>
         </dependency>
+
+        <!-- Fastjson2 -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+        </dependency>
+
+        <!-- Validation API -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

@@ -54,6 +54,12 @@
 
         <!-- Flyway -->
         <flyway.version>9.22.3</flyway.version>
+
+        <!-- Fastjson2 -->
+        <fastjson2.version>2.0.43</fastjson2.version>
+
+        <!-- Validation -->
+        <validation-api.version>3.0.2</validation-api.version>
     </properties>
 
     <dependencyManagement>
@@ -190,6 +196,20 @@
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId>
                 <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- Fastjson2 -->
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+
+            <!-- Validation API -->
+            <dependency>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>${validation-api.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

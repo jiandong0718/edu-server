@@ -26,7 +26,7 @@ public class SecurityUtils {
      * 获取当前登录用户信息
      */
     public static LoginUser getLoginUser() {
-        return SecurityContextHolder.getContext();
+        return SecurityContextHolder.getLoginUser();
     }
 
     /**

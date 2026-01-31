@@ -94,21 +94,21 @@ public class TeacherStatusServiceImpl extends ServiceImpl<TeacherStatusLogMapper
                 SecurityContextHolder.getLoginUser().getRealName() : null;
 
         // 10. 记录状态变更日志
-        TeacherStatusLog log = new TeacherStatusLog();
-        log.setTeacherId(teacher.getId());
-        log.setTeacherName(teacher.getName());
-        log.setTeacherNo(teacher.getTeacherNo());
-        log.setFromStatus(fromStatus);
-        log.setToStatus(toStatus);
-        log.setReason(dto.getReason());
-        log.setEffectiveDate(effectiveDate);
-        log.setExpectedReturnDate(dto.getExpectedReturnDate());
-        log.setCampusId(teacher.getCampusId());
-        log.setOperatorId(operatorId);
-        log.setOperatorName(operatorName);
-        log.setRemark(dto.getRemark());
+        TeacherStatusLog statusLog = new TeacherStatusLog();
+        statusLog.setTeacherId(teacher.getId());
+        statusLog.setTeacherName(teacher.getName());
+        statusLog.setTeacherNo(teacher.getTeacherNo());
+        statusLog.setFromStatus(fromStatus);
+        statusLog.setToStatus(toStatus);
+        statusLog.setReason(dto.getReason());
+        statusLog.setEffectiveDate(effectiveDate);
+        statusLog.setExpectedReturnDate(dto.getExpectedReturnDate());
+        statusLog.setCampusId(teacher.getCampusId());
+        statusLog.setOperatorId(operatorId);
+        statusLog.setOperatorName(operatorName);
+        statusLog.setRemark(dto.getRemark());
         // 其他字段由MyBatis-Plus自动填充
-        save(log);
+        save(statusLog);
 
         // 11. 发布状态变更事件
         TeacherStatusChangeEvent event = new TeacherStatusChangeEvent(

@@ -11,6 +11,7 @@ import com.edu.finance.domain.entity.ContractApprovalFlow;
 import com.edu.finance.domain.entity.ContractPrintRecord;
 import com.edu.finance.domain.entity.ContractPrintTemplate;
 import com.edu.finance.service.ContractApprovalService;
+import com.edu.finance.service.ContractPdfGeneratorService;
 import com.edu.finance.service.ContractPdfService;
 import com.edu.finance.service.ContractPrintService;
 import com.edu.finance.service.ContractService;
@@ -18,9 +19,15 @@ import com.edu.framework.security.SecurityContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.io.ByteArrayOutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -34,6 +41,7 @@ public class ContractController {
 
     private final ContractService contractService;
     private final ContractPdfService contractPdfService;
+    private final ContractPdfGeneratorService contractPdfGeneratorService;
     private final ContractApprovalService contractApprovalService;
     private final ContractPrintService contractPrintService;
 
@@ -182,5 +190,61 @@ public class ContractController {
             @RequestParam(required = false) Long templateId) {
         String html = contractPrintService.previewPrint(id, templateId);
         return R.ok(html);
+    }
+
+    // ==================== PDF生成相关接口（使用iText 7直接生成）====================
+
+    @Operation(summary = "生成合同PDF（iText 7直接生成）")
+    @PostMapping("/{id}/generate-pdf")
+    public R<String> generatePdf(@PathVariable Long id) {
+        String fileUrl = contractPdfGeneratorService.generateAndSavePdf(id);
+        return R.ok(fileUrl);
+    }
+
+    @Operation(summary = "下载合同PDF")
+    @GetMapping("/{id}/download-pdf")
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
+        try {
+            // 获取合同信息用于文件名
+            Contract contract = contractService.getById(id);
+            String fileName = "contract_" + contract.getContractNo() + ".pdf";
+
+            // 生成PDF字节数组
+            byte[] pdfBytes = contractPdfGeneratorService.downloadPdf(id);
+
+            // 设置响应头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment",
+                    URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+            headers.setContentLength(pdfBytes.length);
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @Operation(summary = "预览合同PDF（在线查看）")
+    @GetMapping("/{id}/preview-pdf")
+    public ResponseEntity<byte[]> previewPdf(@PathVariable Long id) {
+        try {
+            // 生成PDF字节数组
+            byte[] pdfBytes = contractPdfGeneratorService.downloadPdf(id);
+
+            // 设置响应头为inline，浏览器会尝试在线预览
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", "contract.pdf");
+            headers.setContentLength(pdfBytes.length);
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

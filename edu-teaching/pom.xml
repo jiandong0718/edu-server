@@ -21,5 +21,17 @@
             <groupId>com.edu</groupId>
             <artifactId>edu-framework</artifactId>
         </dependency>
+
+        <!-- edu-system for holiday service -->
+        <dependency>
+            <groupId>com.edu</groupId>
+            <artifactId>edu-system</artifactId>
+        </dependency>
+
+        <!-- Validation API -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

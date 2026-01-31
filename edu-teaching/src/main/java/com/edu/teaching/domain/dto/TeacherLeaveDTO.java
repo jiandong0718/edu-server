@@ -2,7 +2,7 @@ package com.edu.teaching.domain.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * 教师请假DTO

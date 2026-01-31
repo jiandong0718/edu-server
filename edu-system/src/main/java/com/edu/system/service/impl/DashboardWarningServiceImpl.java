@@ -265,10 +265,11 @@ public class DashboardWarningServiceImpl extends ServiceImpl<DashboardWarningMap
      */
     private List<WarningVO> getCourseHourLowWarnings(Long campusId, WarningConfig config) {
         JSONObject thresholdConfig = JSON.parseObject(config.getThresholdConfig());
-        Integer threshold = thresholdConfig.getInteger("courseHourThreshold");
-        if (threshold == null) {
-            threshold = 5; // 默认阈值
+        Integer thresholdValue = thresholdConfig.getInteger("courseHourThreshold");
+        if (thresholdValue == null) {
+            thresholdValue = 5; // 默认阈值
         }
+        final Integer threshold = thresholdValue;
 
         List<WarningVO.CourseHourLowWarning> details =
                 dashboardWarningMapper.getCourseHourLowWarnings(campusId, threshold);
@@ -298,10 +299,11 @@ public class DashboardWarningServiceImpl extends ServiceImpl<DashboardWarningMap
      */
     private List<WarningVO> getCourseHourExpireWarnings(Long campusId, WarningConfig config) {
         JSONObject thresholdConfig = JSON.parseObject(config.getThresholdConfig());
-        Integer daysThreshold = thresholdConfig.getInteger("daysThreshold");
-        if (daysThreshold == null) {
-            daysThreshold = 30; // 默认30天
+        Integer daysThresholdValue = thresholdConfig.getInteger("daysThreshold");
+        if (daysThresholdValue == null) {
+            daysThresholdValue = 30; // 默认30天
         }
+        final Integer daysThreshold = daysThresholdValue;
 
         List<WarningVO.CourseHourExpireWarning> details =
                 dashboardWarningMapper.getCourseHourExpireWarnings(campusId, daysThreshold);
@@ -331,10 +333,11 @@ public class DashboardWarningServiceImpl extends ServiceImpl<DashboardWarningMap
      */
     private List<WarningVO> getOverdueWarnings(Long campusId, WarningConfig config) {
         JSONObject thresholdConfig = JSON.parseObject(config.getThresholdConfig());
-        Integer daysThreshold = thresholdConfig.getInteger("daysThreshold");
-        if (daysThreshold == null) {
-            daysThreshold = 7; // 默认7天
+        Integer daysThresholdValue = thresholdConfig.getInteger("daysThreshold");
+        if (daysThresholdValue == null) {
+            daysThresholdValue = 7; // 默认7天
         }
+        final Integer daysThreshold = daysThresholdValue;
 
         List<WarningVO.OverdueWarning> details =
                 dashboardWarningMapper.getOverdueWarnings(campusId, daysThreshold);
@@ -364,10 +367,11 @@ public class DashboardWarningServiceImpl extends ServiceImpl<DashboardWarningMap
      */
     private List<WarningVO> getContractExpireWarnings(Long campusId, WarningConfig config) {
         JSONObject thresholdConfig = JSON.parseObject(config.getThresholdConfig());
-        Integer daysThreshold = thresholdConfig.getInteger("daysThreshold");
-        if (daysThreshold == null) {
-            daysThreshold = 30; // 默认30天
+        Integer daysThresholdValue = thresholdConfig.getInteger("daysThreshold");
+        if (daysThresholdValue == null) {
+            daysThresholdValue = 30; // 默认30天
         }
+        final Integer daysThreshold = daysThresholdValue;
 
         List<WarningVO.ContractExpireWarning> details =
                 dashboardWarningMapper.getContractExpireWarnings(campusId, daysThreshold);
@@ -397,10 +401,11 @@ public class DashboardWarningServiceImpl extends ServiceImpl<DashboardWarningMap
      */
     private List<WarningVO> getStudentLossWarnings(Long campusId, WarningConfig config) {
         JSONObject thresholdConfig = JSON.parseObject(config.getThresholdConfig());
-        Integer daysThreshold = thresholdConfig.getInteger("daysThreshold");
-        if (daysThreshold == null) {
-            daysThreshold = 30; // 默认30天
+        Integer daysThresholdValue = thresholdConfig.getInteger("daysThreshold");
+        if (daysThresholdValue == null) {
+            daysThresholdValue = 30; // 默认30天
         }
+        final Integer daysThreshold = daysThresholdValue;
 
         List<WarningVO.StudentLossWarning> details =
                 dashboardWarningMapper.getStudentLossWarnings(campusId, daysThreshold);
