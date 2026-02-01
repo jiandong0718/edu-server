@@ -36,6 +36,7 @@ INSERT INTO sys_config (config_key, config_value, config_type, config_group, des
 ('security.login.lock.duration', '30', 'number', 'security', '账号锁定时长（分钟）', 1, 7, 1, NOW(), NOW(), 0),
 ('security.session.timeout', '120', 'number', 'security', '会话超时时间（分钟）', 1, 8, 1, NOW(), NOW(), 0),
 ('security.jwt.expire.time', '7200', 'number', 'security', 'JWT过期时间（秒）', 1, 9, 1, NOW(), NOW(), 0),
+('login.force.change.password', 'true', 'boolean', 'security', '首次登录是否强制修改密码', 1, 10, 1, NOW(), NOW(), 0),
 
 -- 业务配置
 ('business.student.id.prefix', 'STU', 'string', 'business', '学员编号前缀', 0, 1, 1, NOW(), NOW(), 0),
