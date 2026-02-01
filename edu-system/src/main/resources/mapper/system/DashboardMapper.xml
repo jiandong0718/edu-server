@@ -105,7 +105,7 @@
         FROM fin_contract
         WHERE deleted = 0
           AND status IN ('pending', 'signed')
-          AND paid_amount > received_amount
+          AND paid_amount &gt; received_amount
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -116,7 +116,7 @@
         FROM fin_contract
         WHERE deleted = 0
           AND status IN ('pending', 'signed')
-          AND paid_amount > received_amount
+          AND paid_amount &gt; received_amount
           AND expire_date &lt; CURDATE()
         <if test="campusId != null">
             AND campus_id = #{campusId}
@@ -150,7 +150,7 @@
         FROM fin_payment
         WHERE deleted = 0
           AND status = 'paid'
-          AND pay_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND pay_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -331,7 +331,7 @@
         SELECT DATE(create_time) as date, COUNT(*) as count
         FROM mkt_lead
         WHERE deleted = 0
-          AND create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND create_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -344,7 +344,7 @@
         FROM mkt_lead
         WHERE deleted = 0
           AND status = 'converted'
-          AND update_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND update_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>

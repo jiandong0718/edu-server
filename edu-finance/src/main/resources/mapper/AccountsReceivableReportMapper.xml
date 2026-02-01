@@ -67,7 +67,7 @@
         LEFT JOIN sys_user u ON c.sales_id = u.id
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.paid_amount > COALESCE(c.received_amount, 0)
+          AND c.paid_amount &gt; COALESCE(c.received_amount, 0)
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>
@@ -129,7 +129,7 @@
         FROM fin_contract c
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.paid_amount > COALESCE(c.received_amount, 0)
+          AND c.paid_amount &gt; COALESCE(c.received_amount, 0)
         <if test="campusId != null">
             AND c.campus_id = #{campusId}
         </if>
@@ -147,7 +147,7 @@
         LEFT JOIN sys_campus campus ON c.campus_id = campus.id
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.paid_amount > COALESCE(c.received_amount, 0)
+          AND c.paid_amount &gt; COALESCE(c.received_amount, 0)
         GROUP BY c.campus_id, campus.name
         ORDER BY arrearsAmount DESC
     </select>
@@ -193,7 +193,7 @@
         LEFT JOIN sys_user u ON c.sales_id = u.id
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.paid_amount > COALESCE(c.received_amount, 0)
+          AND c.paid_amount &gt; COALESCE(c.received_amount, 0)
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>

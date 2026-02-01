@@ -70,7 +70,7 @@
         WHERE a.deleted = 0
           AND a.student_id = #{studentId}
         <if test="startDate != null">
-            AND sc.schedule_date >= #{startDate}
+            AND sc.schedule_date &gt;= #{startDate}
         </if>
         <if test="endDate != null">
             AND sc.schedule_date &lt;= #{endDate}
@@ -90,7 +90,7 @@
             AND sc.class_id = #{classId}
         </if>
         <if test="startDate != null">
-            AND sc.schedule_date >= #{startDate}
+            AND sc.schedule_date &gt;= #{startDate}
         </if>
         <if test="endDate != null">
             AND sc.schedule_date &lt;= #{endDate}

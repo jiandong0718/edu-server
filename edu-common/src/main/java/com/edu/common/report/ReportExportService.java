@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.IndexedColors;
+import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,6 +39,7 @@ import java.util.List;
  * 支持 Excel 和 PDF 格式导出
  */
 @Slf4j
+@Service
 public class ReportExportService {
 
     private static final String DEFAULT_FONT = "STSong-Light";

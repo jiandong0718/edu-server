@@ -68,7 +68,7 @@
         LEFT JOIN sys_campus ca ON c.campus_id = ca.id
         LEFT JOIN sys_user u ON c.sales_id = u.id
         WHERE c.deleted = 0
-          AND c.paid_amount > c.received_amount
+          AND c.paid_amount &gt; c.received_amount
           AND c.status IN ('signed', 'completed')
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
@@ -86,13 +86,13 @@
             AND c.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
         </if>
         <if test="query.minArrearsAmount != null">
-            AND (c.paid_amount - c.received_amount) >= #{query.minArrearsAmount}
+            AND (c.paid_amount - c.received_amount) &gt;= #{query.minArrearsAmount}
         </if>
         <if test="query.maxArrearsAmount != null">
             AND (c.paid_amount - c.received_amount) &lt;= #{query.maxArrearsAmount}
         </if>
         <if test="query.minArrearsDays != null">
-            AND DATEDIFF(CURDATE(), c.effective_date) >= #{query.minArrearsDays}
+            AND DATEDIFF(CURDATE(), c.effective_date) &gt;= #{query.minArrearsDays}
         </if>
         <if test="query.maxArrearsDays != null">
             AND DATEDIFF(CURDATE(), c.effective_date) &lt;= #{query.maxArrearsDays}
@@ -109,12 +109,12 @@
             COALESCE(AVG(c.paid_amount - c.received_amount), 0) as avgArrearsAmount,
             COALESCE(MAX(c.paid_amount - c.received_amount), 0) as maxArrearsAmount,
             SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &lt;= 7 THEN 1 ELSE 0 END) as arrears7DaysCount,
-            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) > 7 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 15 THEN 1 ELSE 0 END) as arrears7To15DaysCount,
-            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) > 15 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN 1 ELSE 0 END) as arrears15To30DaysCount,
-            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) > 30 THEN 1 ELSE 0 END) as arrears30PlusDaysCount
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 7 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 15 THEN 1 ELSE 0 END) as arrears7To15DaysCount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 15 AND DATEDIFF(CURDATE(), c.effective_date) &lt;= 30 THEN 1 ELSE 0 END) as arrears15To30DaysCount,
+            SUM(CASE WHEN DATEDIFF(CURDATE(), c.effective_date) &gt; 30 THEN 1 ELSE 0 END) as arrears30PlusDaysCount
         FROM fin_contract c
         WHERE c.deleted = 0
-          AND c.paid_amount > c.received_amount
+          AND c.paid_amount &gt; c.received_amount
           AND c.status IN ('signed', 'completed')
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
@@ -140,8 +140,8 @@
             (c.paid_amount - c.received_amount) as arrears_amount,
             DATEDIFF(CURDATE(), c.effective_date) as arrears_days,
             CASE
-                WHEN DATEDIFF(CURDATE(), c.effective_date) >= 30 THEN 'urgent'
-                WHEN DATEDIFF(CURDATE(), c.effective_date) >= 15 THEN 'warning'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &gt;= 30 THEN 'urgent'
+                WHEN DATEDIFF(CURDATE(), c.effective_date) &gt;= 15 THEN 'warning'
                 ELSE 'normal'
             END as remind_level,
             c.sales_id,
@@ -153,10 +153,10 @@
         LEFT JOIN sys_campus ca ON c.campus_id = ca.id
         LEFT JOIN sys_user u ON c.sales_id = u.id
         WHERE c.deleted = 0
-          AND c.paid_amount > c.received_amount
+          AND c.paid_amount &gt; c.received_amount
           AND c.status IN ('signed', 'completed')
         <if test="minDays != null">
-            AND DATEDIFF(CURDATE(), c.effective_date) >= #{minDays}
+            AND DATEDIFF(CURDATE(), c.effective_date) &gt;= #{minDays}
         </if>
         ORDER BY arrears_days DESC, arrears_amount DESC
     </select>

@@ -138,10 +138,10 @@
                 <version>${druid.version}</version>
             </dependency>
 
-            <!-- Dynamic DataSource -->
+            <!-- Dynamic DataSource for Spring Boot 3.x -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>dynamic-datasource-spring-boot-starter</artifactId>
+                <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
                 <version>${dynamic-datasource.version}</version>
             </dependency>
 

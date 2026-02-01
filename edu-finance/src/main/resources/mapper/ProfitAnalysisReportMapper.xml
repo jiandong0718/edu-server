@@ -9,7 +9,7 @@
             SUM(COALESCE(c.total_hours, 0) * 50) as totalCost,
             SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
             CASE
-                WHEN SUM(c.received_amount) > 0 THEN
+                WHEN SUM(c.received_amount) &gt; 0 THEN
                     ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
                 ELSE 0
             END as grossProfitMargin,
@@ -19,7 +19,7 @@
         FROM fin_contract c
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.received_amount > 0
+          AND c.received_amount &gt; 0
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>
@@ -40,7 +40,7 @@
             SUM(COALESCE(c.total_hours, 0) * 50) as cost,
             SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
             CASE
-                WHEN SUM(c.received_amount) > 0 THEN
+                WHEN SUM(c.received_amount) &gt; 0 THEN
                     ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
                 ELSE 0
             END as grossProfitMargin,
@@ -50,7 +50,7 @@
         LEFT JOIN sys_campus campus ON c.campus_id = campus.id
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.received_amount > 0
+          AND c.received_amount &gt; 0
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>
@@ -73,7 +73,7 @@
             SUM(COALESCE(c.total_hours, 0) * 50) as cost,
             SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
             CASE
-                WHEN SUM(c.received_amount) > 0 THEN
+                WHEN SUM(c.received_amount) &gt; 0 THEN
                     ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
                 ELSE 0
             END as grossProfitMargin,
@@ -83,7 +83,7 @@
         LEFT JOIN fin_contract_item ci ON c.id = ci.contract_id
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.received_amount > 0
+          AND c.received_amount &gt; 0
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>
@@ -108,7 +108,7 @@
             SUM(COALESCE(c.total_hours, 0) * 50) as cost,
             SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
             CASE
-                WHEN SUM(c.received_amount) > 0 THEN
+                WHEN SUM(c.received_amount) &gt; 0 THEN
                     ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
                 ELSE 0
             END as grossProfitMargin,
@@ -116,7 +116,7 @@
         FROM fin_contract c
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.received_amount > 0
+          AND c.received_amount &gt; 0
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>
@@ -138,7 +138,7 @@
             SUM(COALESCE(c.total_hours, 0) * 50) as cost,
             SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50) as grossProfit,
             CASE
-                WHEN SUM(c.received_amount) > 0 THEN
+                WHEN SUM(c.received_amount) &gt; 0 THEN
                     ((SUM(c.received_amount) - SUM(COALESCE(c.total_hours, 0) * 50)) / SUM(c.received_amount)) * 100
                 ELSE 0
             END as grossProfitMargin,
@@ -146,7 +146,7 @@
         FROM fin_contract c
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'completed')
-          AND c.received_amount > 0
+          AND c.received_amount &gt; 0
         <if test="query.campusId != null">
             AND c.campus_id = #{query.campusId}
         </if>

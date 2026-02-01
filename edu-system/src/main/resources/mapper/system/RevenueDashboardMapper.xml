@@ -56,7 +56,7 @@
         FROM fin_contract
         WHERE deleted = 0
           AND status IN ('signed', 'pending')
-          AND paid_amount > received_amount
+          AND paid_amount &gt; received_amount
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -68,7 +68,7 @@
         FROM fin_contract
         WHERE deleted = 0
           AND status IN ('signed', 'pending')
-          AND paid_amount > received_amount
+          AND paid_amount &gt; received_amount
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -80,7 +80,7 @@
         FROM fin_contract
         WHERE deleted = 0
           AND status IN ('signed', 'pending')
-          AND paid_amount > received_amount
+          AND paid_amount &gt; received_amount
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -106,7 +106,7 @@
         FROM fin_payment
         WHERE deleted = 0
           AND status = 'paid'
-          AND pay_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND pay_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         <if test="campusId != null">
             AND campus_id = #{campusId}
         </if>
@@ -157,7 +157,7 @@
         LEFT JOIN sys_campus sc ON c.campus_id = sc.id
         WHERE c.deleted = 0
           AND c.status IN ('signed', 'pending')
-          AND c.paid_amount > c.received_amount
+          AND c.paid_amount &gt; c.received_amount
         <if test="campusId != null">
             AND c.campus_id = #{campusId}
         </if>

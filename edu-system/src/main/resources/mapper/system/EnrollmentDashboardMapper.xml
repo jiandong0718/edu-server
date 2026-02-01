@@ -229,7 +229,7 @@
             AND u.campus_id = #{campusId}
         </if>
         GROUP BY u.id, u.name
-        HAVING deal_count > 0
+        HAVING deal_count &gt; 0
         ORDER BY deal_count DESC, deal_amount DESC
         LIMIT #{limit}
     </select>

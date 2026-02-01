@@ -14,12 +14,12 @@
             (c.issued_quantity - c.used_quantity - IFNULL(expired_count, 0)) AS unusedQuantity,
             IFNULL(expired_count, 0) AS expiredQuantity,
             CASE
-                WHEN c.issued_quantity > 0 THEN ROUND(c.used_quantity * 100.0 / c.issued_quantity, 2)
+                WHEN c.issued_quantity &gt; 0 THEN ROUND(c.used_quantity * 100.0 / c.issued_quantity, 2)
                 ELSE 0
             END AS useRate,
             IFNULL(SUM(cr.discount_amount), 0) AS totalDiscountAmount,
             CASE
-                WHEN c.used_quantity > 0 THEN ROUND(IFNULL(SUM(cr.discount_amount), 0) / c.used_quantity, 2)
+                WHEN c.used_quantity &gt; 0 THEN ROUND(IFNULL(SUM(cr.discount_amount), 0) / c.used_quantity, 2)
                 ELSE 0
             END AS avgDiscountAmount
         FROM mkt_coupon c

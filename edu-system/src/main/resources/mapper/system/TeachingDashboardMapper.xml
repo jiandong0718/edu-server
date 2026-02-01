@@ -20,7 +20,7 @@
             (SELECT COUNT(*) FROM tch_class WHERE deleted = 0 AND status = 'ongoing'
                 <if test="campusId != null">AND campus_id = #{campusId}</if>
             ) as ongoingClassCount,
-            (SELECT COUNT(*) FROM tch_class WHERE deleted = 0 AND current_students >= capacity
+            (SELECT COUNT(*) FROM tch_class WHERE deleted = 0 AND current_students &gt;= capacity
                 <if test="campusId != null">AND campus_id = #{campusId}</if>
             ) as fullClassCount,
             (SELECT COUNT(*) FROM tch_teacher WHERE deleted = 0
@@ -40,7 +40,7 @@
             FROM tch_attendance a
             INNER JOIN tch_schedule s ON a.schedule_id = s.id
             WHERE a.deleted = 0
-                AND s.schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                AND s.schedule_date &gt;= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                 <if test="campusId != null">AND s.campus_id = #{campusId}</if>
             ) as averageAttendanceRate,
             (SELECT
@@ -50,7 +50,7 @@
                 END
             FROM tch_schedule s
             WHERE s.deleted = 0
-                AND s.schedule_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                AND s.schedule_date &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                 <if test="campusId != null">AND s.campus_id = #{campusId}</if>
             ) as averageCompletionRate,
             (SELECT
@@ -61,10 +61,10 @@
             FROM fin_contract c1
             LEFT JOIN fin_contract c2 ON c1.student_id = c2.student_id
                 AND c2.contract_type = 'renewal'
-                AND c2.create_time >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                AND c2.create_time &gt;= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
             WHERE c1.deleted = 0
-                AND c1.expire_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-                AND c1.expire_date < CURDATE()
+                AND c1.expire_date &gt;= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                AND c1.expire_date &lt; CURDATE()
                 <if test="campusId != null">AND c1.campus_id = #{campusId}</if>
             ) as renewalRate
     </select>
@@ -150,8 +150,8 @@
              FROM tch_schedule
              WHERE teacher_id = t.id
                 AND deleted = 0
-                AND schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                AND schedule_date <= CURDATE()
+                AND schedule_date &gt;= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                AND schedule_date &lt;= CURDATE()
                 AND status != 'cancelled'
             ) as weekScheduleCount,
             (SELECT COUNT(*)
@@ -212,7 +212,7 @@
                 AND co.campus_id = #{campusId}
             </if>
         GROUP BY co.id, co.course_name
-        HAVING totalHours > 0
+        HAVING totalHours &gt; 0
         ORDER BY consumptionRate DESC
         <if test="limit != null">
             LIMIT #{limit}

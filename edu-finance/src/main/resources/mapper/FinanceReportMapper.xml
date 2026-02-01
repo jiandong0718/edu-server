@@ -8,7 +8,7 @@
             COALESCE(SUM(p.amount), 0) AS totalRevenue,
             COUNT(DISTINCT c.id) AS totalContracts,
             COUNT(DISTINCT c.student_id) AS totalStudents,
-            CASE WHEN COUNT(DISTINCT c.id) > 0
+            CASE WHEN COUNT(DISTINCT c.id) &gt; 0
                 THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
                 ELSE 0
             END AS avgOrderAmount,
@@ -61,7 +61,7 @@
             COALESCE(SUM(p.amount), 0) AS revenueAmount,
             COUNT(DISTINCT c.id) AS contractCount,
             COUNT(DISTINCT c.student_id) AS studentCount,
-            CASE WHEN COUNT(DISTINCT c.id) > 0
+            CASE WHEN COUNT(DISTINCT c.id) &gt; 0
                 THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
                 ELSE 0
             END AS avgOrderAmount
@@ -104,7 +104,7 @@
             COALESCE(SUM(p.amount), 0) AS revenueAmount,
             COUNT(DISTINCT c.id) AS contractCount,
             COUNT(DISTINCT c.student_id) AS studentCount,
-            CASE WHEN COUNT(DISTINCT c.id) > 0
+            CASE WHEN COUNT(DISTINCT c.id) &gt; 0
                 THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
                 ELSE 0
             END AS avgOrderAmount
@@ -145,7 +145,7 @@
             COALESCE(SUM(p.amount), 0) AS revenueAmount,
             COUNT(DISTINCT c.id) AS contractCount,
             COUNT(DISTINCT c.student_id) AS studentCount,
-            CASE WHEN COUNT(DISTINCT c.id) > 0
+            CASE WHEN COUNT(DISTINCT c.id) &gt; 0
                 THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
                 ELSE 0
             END AS avgOrderAmount
@@ -193,7 +193,7 @@
             COALESCE(SUM(p.amount), 0) AS revenueAmount,
             COUNT(DISTINCT c.id) AS contractCount,
             COUNT(DISTINCT c.student_id) AS studentCount,
-            CASE WHEN COUNT(DISTINCT c.id) > 0
+            CASE WHEN COUNT(DISTINCT c.id) &gt; 0
                 THEN COALESCE(SUM(p.amount), 0) / COUNT(DISTINCT c.id)
                 ELSE 0
             END AS avgOrderAmount
@@ -268,7 +268,7 @@
             COALESCE(SUM(cha.remaining_hours), 0) AS remainingHours,
             COUNT(DISTINCT cha.student_id) AS studentCount,
             COUNT(DISTINCT chr.id) AS consumptionCount,
-            CASE WHEN COUNT(DISTINCT chr.id) > 0
+            CASE WHEN COUNT(DISTINCT chr.id) &gt; 0
                 THEN COALESCE(SUM(chr.hours), 0) / COUNT(DISTINCT chr.id)
                 ELSE 0
             END AS avgHoursPerConsumption
@@ -289,7 +289,7 @@
             AND cls.course_id = #{query.courseId}
         </if>
         GROUP BY cls.id, cls.name
-        HAVING totalHours > 0
+        HAVING totalHours &gt; 0
         <choose>
             <when test="query.sortField != null and query.sortField == 'consumedHours'">
                 ORDER BY consumedHours ${query.sortOrder}
@@ -313,7 +313,7 @@
             COALESCE(SUM(cha.remaining_hours), 0) AS remainingHours,
             COUNT(DISTINCT cha.student_id) AS studentCount,
             COUNT(DISTINCT chr.id) AS consumptionCount,
-            CASE WHEN COUNT(DISTINCT chr.id) > 0
+            CASE WHEN COUNT(DISTINCT chr.id) &gt; 0
                 THEN COALESCE(SUM(chr.hours), 0) / COUNT(DISTINCT chr.id)
                 ELSE 0
             END AS avgHoursPerConsumption
@@ -332,7 +332,7 @@
             AND crs.campus_id = #{query.campusId}
         </if>
         GROUP BY crs.id, crs.name
-        HAVING totalHours > 0
+        HAVING totalHours &gt; 0
         <choose>
             <when test="query.sortField != null and query.sortField == 'consumedHours'">
                 ORDER BY consumedHours ${query.sortOrder}
@@ -354,7 +354,7 @@
             COALESCE(SUM(chr.hours), 0) AS consumedHours,
             COUNT(DISTINCT chr.student_id) AS studentCount,
             COUNT(DISTINCT chr.id) AS consumptionCount,
-            CASE WHEN COUNT(DISTINCT chr.id) > 0
+            CASE WHEN COUNT(DISTINCT chr.id) &gt; 0
                 THEN COALESCE(SUM(chr.hours), 0) / COUNT(DISTINCT chr.id)
                 ELSE 0
             END AS avgHoursPerConsumption,
@@ -373,7 +373,7 @@
             AND t.campus_id = #{query.campusId}
         </if>
         GROUP BY t.id, t.name
-        HAVING consumedHours > 0
+        HAVING consumedHours &gt; 0
         <choose>
             <when test="query.sortField != null and query.sortField == 'consumedHours'">
                 ORDER BY consumedHours ${query.sortOrder}
@@ -393,7 +393,7 @@
             COALESCE(SUM(cha.total_hours), 0) AS totalHours,
             COALESCE(SUM(cha.used_hours), 0) AS usedHours,
             COALESCE(SUM(cha.remaining_hours), 0) AS remainingHours,
-            CASE WHEN SUM(cha.total_hours) > 0
+            CASE WHEN SUM(cha.total_hours) &gt; 0
                 THEN (SUM(cha.used_hours) / SUM(cha.total_hours)) * 100
                 ELSE 0
             END AS consumptionRate,

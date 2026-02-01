@@ -25,7 +25,7 @@
             COALESCE(SUM(a.used_hours), 0) as used_hours,
             COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
             COALESCE(SUM(a.gift_hours), 0) as gift_hours,
-            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN 1 END) as warning_account_count
         FROM fin_class_hour_account a
         LEFT JOIN stu_student s ON a.student_id = s.id
         WHERE a.deleted = 0
@@ -44,7 +44,7 @@
             COALESCE(SUM(a.used_hours), 0) as used_hours,
             COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
             COALESCE(SUM(a.gift_hours), 0) as gift_hours,
-            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN 1 END) as warning_account_count
         FROM fin_class_hour_account a
         LEFT JOIN tch_course c ON a.course_id = c.id
         WHERE a.deleted = 0
@@ -63,7 +63,7 @@
             COALESCE(SUM(a.used_hours), 0) as used_hours,
             COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
             COALESCE(SUM(a.gift_hours), 0) as gift_hours,
-            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN 1 END) as warning_account_count
         FROM fin_class_hour_account a
         LEFT JOIN sys_campus ca ON a.campus_id = ca.id
         WHERE a.deleted = 0
@@ -93,11 +93,11 @@
                 ELSE '未知'
             END as statusDesc,
             CASE
-                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN true
+                WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN true
                 ELSE false
             END as isWarning,
             CASE
-                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN '课时余额不足'
+                WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN '课时余额不足'
                 ELSE NULL
             END as warningReason,
             a.create_time as createTime,
@@ -133,11 +133,11 @@
                 ELSE '未知'
             END as statusDesc,
             CASE
-                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN true
+                WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN true
                 ELSE false
             END as isWarning,
             CASE
-                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN '课时余额不足'
+                WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN '课时余额不足'
                 ELSE NULL
             END as warningReason,
             a.create_time as createTime,
@@ -171,11 +171,11 @@
                 ELSE '未知'
             END as statusDesc,
             CASE
-                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN true
+                WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN true
                 ELSE false
             END as isWarning,
             CASE
-                WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN '课时余额不足'
+                WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN '课时余额不足'
                 ELSE NULL
             END as warningReason,
             a.create_time as createTime,
@@ -216,17 +216,17 @@
             NULL as expiryDate,
             NULL as daysToExpiry,
             CASE
-                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'low_balance'
+                WHEN a.remaining_hours &lt;= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'low_balance'
                 ELSE NULL
             END as warningType,
             CASE
-                WHEN a.remaining_hours <= 2 THEN 'urgent'
-                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'warning'
+                WHEN a.remaining_hours &lt;= 2 THEN 'urgent'
+                WHEN a.remaining_hours &lt;= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'warning'
                 ELSE 'normal'
             END as warningLevel,
             CASE
-                WHEN a.remaining_hours <= 2 THEN CONCAT('课时严重不足，仅剩', a.remaining_hours, '课时')
-                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN CONCAT('课时余额不足，剩余', a.remaining_hours, '课时')
+                WHEN a.remaining_hours &lt;= 2 THEN CONCAT('课时严重不足，仅剩', a.remaining_hours, '课时')
+                WHEN a.remaining_hours &lt;= COALESCE(#{query.lowBalanceThreshold}, 5) THEN CONCAT('课时余额不足，剩余', a.remaining_hours, '课时')
                 ELSE NULL
             END as warningMessage,
             a.create_time as createTime
@@ -236,7 +236,7 @@
         LEFT JOIN sys_campus ca ON a.campus_id = ca.id
         WHERE a.deleted = 0
           AND a.status = 'active'
-          AND a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5)
+          AND a.remaining_hours &lt;= COALESCE(#{query.lowBalanceThreshold}, 5)
         <if test="query.studentId != null">
             AND a.student_id = #{query.studentId}
         </if>
@@ -248,8 +248,8 @@
         </if>
         <if test="query.warningLevel != null and query.warningLevel != ''">
             AND CASE
-                WHEN a.remaining_hours <= 2 THEN 'urgent'
-                WHEN a.remaining_hours <= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'warning'
+                WHEN a.remaining_hours &lt;= 2 THEN 'urgent'
+                WHEN a.remaining_hours &lt;= COALESCE(#{query.lowBalanceThreshold}, 5) THEN 'warning'
                 ELSE 'normal'
             END = #{query.warningLevel}
         </if>
@@ -269,11 +269,11 @@
             COALESCE(SUM(gift_hours), 0) as giftHours,
             0 as frozenHours,
             CASE
-                WHEN SUM(total_hours) > 0 THEN ROUND(SUM(used_hours) / SUM(total_hours) * 100, 2)
+                WHEN SUM(total_hours) &gt; 0 THEN ROUND(SUM(used_hours) / SUM(total_hours) * 100, 2)
                 ELSE 0
             END as usageRate,
-            COUNT(CASE WHEN status = 'active' AND remaining_hours <= 5 THEN 1 END) as warningAccounts,
-            COUNT(CASE WHEN status = 'active' AND remaining_hours <= 5 THEN 1 END) as lowBalanceWarnings,
+            COUNT(CASE WHEN status = 'active' AND remaining_hours &lt;= 5 THEN 1 END) as warningAccounts,
+            COUNT(CASE WHEN status = 'active' AND remaining_hours &lt;= 5 THEN 1 END) as lowBalanceWarnings,
             0 as expiringWarnings,
             0 as expiredWarnings
         FROM fin_class_hour_account
@@ -294,7 +294,7 @@
             COALESCE(SUM(a.used_hours), 0) as used_hours,
             COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
             COALESCE(SUM(a.gift_hours), 0) as gift_hours,
-            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN 1 END) as warning_account_count
         FROM fin_class_hour_account a
         LEFT JOIN tch_course c ON a.course_id = c.id
         WHERE a.deleted = 0
@@ -316,7 +316,7 @@
             COALESCE(SUM(a.used_hours), 0) as used_hours,
             COALESCE(SUM(a.remaining_hours), 0) as remaining_hours,
             COALESCE(SUM(a.gift_hours), 0) as gift_hours,
-            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours <= 5 THEN 1 END) as warning_account_count
+            COUNT(CASE WHEN a.status = 'active' AND a.remaining_hours &lt;= 5 THEN 1 END) as warning_account_count
         FROM fin_class_hour_account a
         LEFT JOIN stu_student s ON a.student_id = s.id
         WHERE a.deleted = 0
@@ -336,7 +336,7 @@
             COUNT(DISTINCT r.student_id) as studentCount,
             COUNT(DISTINCT a.course_id) as courseCount,
             CASE
-                WHEN COUNT(*) > 0 THEN ROUND(SUM(ABS(r.hours)) / COUNT(*), 2)
+                WHEN COUNT(*) &gt; 0 THEN ROUND(SUM(ABS(r.hours)) / COUNT(*), 2)
                 ELSE 0
             END as avgHoursPerConsumption
         FROM fin_class_hour_record r

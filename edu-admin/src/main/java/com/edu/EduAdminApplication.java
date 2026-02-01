@@ -9,9 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * 教育机构学生管理系统 - 启动类
  */
-@SpringBootApplication(exclude = {
-        com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure.class
-})
+@SpringBootApplication
 @MapperScan("com.edu.**.mapper")
 @EnableScheduling
 @EnableAsync

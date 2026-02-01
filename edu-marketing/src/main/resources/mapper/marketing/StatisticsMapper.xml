@@ -45,7 +45,7 @@
             COALESCE(SUM(CASE WHEN l.status = 'lost' THEN 1 ELSE 0 END), 0) as lost_count,
             -- 预约转化率 = 已预约数量 / (新线索 + 跟进中) * 100
             CASE
-                WHEN (SUM(CASE WHEN l.status IN ('new', 'following') THEN 1 ELSE 0 END)) > 0
+                WHEN (SUM(CASE WHEN l.status IN ('new', 'following') THEN 1 ELSE 0 END)) &gt; 0
                 THEN ROUND(
                     SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) * 100.0 /
                     (SUM(CASE WHEN l.status IN ('new', 'following') THEN 1 ELSE 0 END) +
@@ -56,7 +56,7 @@
             END as appointment_rate,
             -- 试听转化率 = 已试听数量 / 已预约数量 * 100
             CASE
-                WHEN SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) > 0
+                WHEN SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) &gt; 0
                 THEN ROUND(
                     SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) * 100.0 /
                     (SUM(CASE WHEN l.status = 'appointed' THEN 1 ELSE 0 END) +
@@ -67,7 +67,7 @@
             END as trial_rate,
             -- 成交转化率 = 已成交数量 / 已试听数量 * 100
             CASE
-                WHEN SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) > 0
+                WHEN SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) &gt; 0
                 THEN ROUND(
                     SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 /
                     (SUM(CASE WHEN l.status = 'trialed' THEN 1 ELSE 0 END) +
@@ -78,7 +78,7 @@
             END as conversion_rate,
             -- 整体转化率 = 已成交数量 / 总线索数量 * 100
             CASE
-                WHEN COUNT(l.id) > 0
+                WHEN COUNT(l.id) &gt; 0
                 THEN ROUND(
                     SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / COUNT(l.id),
                     2
@@ -120,7 +120,7 @@
             COALESCE(SUM(DISTINCT c.amount), 0) as conversion_amount,
             -- 转化率 = 成交数量 / 线索总数 * 100
             CASE
-                WHEN COUNT(DISTINCT l.id) > 0
+                WHEN COUNT(DISTINCT l.id) &gt; 0
                 THEN ROUND(
                     SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / COUNT(DISTINCT l.id),
                     2
@@ -129,7 +129,7 @@
             END as conversion_rate,
             -- 平均跟进次数 = 跟进次数 / 线索总数
             CASE
-                WHEN COUNT(DISTINCT l.id) > 0
+                WHEN COUNT(DISTINCT l.id) &gt; 0
                 THEN ROUND(COUNT(DISTINCT f.id) * 1.0 / COUNT(DISTINCT l.id), 2)
                 ELSE 0
             END as avg_follow_up_count
@@ -219,7 +219,7 @@
                 DESC
             </otherwise>
         </choose>
-        <if test="query.limit != null and query.limit > 0">
+        <if test="query.limit != null and query.limit &gt; 0">
             LIMIT #{query.limit}
         </if>
     </select>
