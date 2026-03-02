@@ -86,6 +86,22 @@ mvn spring-boot:run -pl edu-admin
 - API 文档：http://localhost:8080/doc.html
 - 健康检查：http://localhost:8080/actuator/health
 
+## 提交前校验规则
+
+每次 `git commit` 前可自动执行仓库边界校验，防止 `edu-server` 与 `edu-web` 误混提，并阻止 `.agent/.claude/.cursorrules` 进入提交。
+
+### 安装提交钩子（首次一次）
+
+```bash
+bash scripts/setup-git-hooks.sh
+```
+
+### 手动执行一次校验
+
+```bash
+bash scripts/verify-commit-boundary.sh
+```
+
 ## 功能特性
 
 ### 安全认证
