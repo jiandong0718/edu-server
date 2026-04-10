@@ -4,10 +4,19 @@
 
     <!-- 根据合同ID查询明细列表 -->
     <select id="selectByContractId" resultType="com.edu.finance.domain.entity.ContractItem">
-        SELECT *
-        FROM fin_contract_item
-        WHERE contract_id = #{contractId}
-        ORDER BY id
+        SELECT ci.id,
+               ci.contract_id,
+               ci.course_id,
+               c.name AS course_name,
+               ci.unit_price,
+               ci.quantity,
+               ci.hours,
+               ci.amount,
+               ci.create_time
+        FROM fin_contract_item ci
+        LEFT JOIN tch_course c ON ci.course_id = c.id
+        WHERE ci.contract_id = #{contractId}
+        ORDER BY ci.id
     </select>
 
 </mapper>

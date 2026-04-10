@@ -16,4 +16,9 @@ public interface ContractMapper extends BaseMapper<Contract> {
      * 分页查询合同列表
      */
     IPage<Contract> selectContractPage(IPage<Contract> page, @Param("query") Contract query);
+
+    /**
+     * 查询合同详情
+     */
+    Contract selectContractDetail(@Param("id") Long id);
 }

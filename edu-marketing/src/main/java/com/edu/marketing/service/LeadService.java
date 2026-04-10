@@ -64,6 +64,11 @@ public interface LeadService extends IService<Lead> {
     boolean importFromExcel(byte[] fileData);
 
     /**
+     * 导出线索
+     */
+    byte[] exportToExcel(Lead query);
+
+    /**
      * 批量导入线索（增强版）
      *
      * @param fileData Excel文件数据

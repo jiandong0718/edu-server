@@ -9,6 +9,7 @@ import com.edu.teaching.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -67,6 +68,12 @@ public class TeacherController {
     @Operation(summary = "新增教师")
     @PostMapping
     public R<Boolean> add(@RequestBody Teacher teacher) {
+        if (!StringUtils.hasText(teacher.getTeacherNo())) {
+            teacher.setTeacherNo(generateTeacherNo());
+        }
+        if (!StringUtils.hasText(teacher.getStatus())) {
+            teacher.setStatus("active");
+        }
         if (!teacherService.checkTeacherNoUnique(teacher.getTeacherNo(), null)) {
             throw new BusinessException("教师编号已存在");
         }
@@ -76,6 +83,16 @@ public class TeacherController {
     @Operation(summary = "修改教师")
     @PutMapping
     public R<Boolean> update(@RequestBody Teacher teacher) {
+        if (teacher.getId() == null) {
+            throw new BusinessException("教师ID不能为空");
+        }
+        Teacher existing = teacherService.getById(teacher.getId());
+        if (existing == null) {
+            throw new BusinessException("教师不存在");
+        }
+        if (!StringUtils.hasText(teacher.getTeacherNo())) {
+            teacher.setTeacherNo(existing.getTeacherNo());
+        }
         if (!teacherService.checkTeacherNoUnique(teacher.getTeacherNo(), teacher.getId())) {
             throw new BusinessException("教师编号已存在");
         }
@@ -109,5 +126,9 @@ public class TeacherController {
     @GetMapping("/user/{userId}")
     public R<Teacher> getByUserId(@PathVariable Long userId) {
         return R.ok(teacherService.getByUserId(userId));
+    }
+
+    private String generateTeacherNo() {
+        return "T" + System.currentTimeMillis();
     }
 }

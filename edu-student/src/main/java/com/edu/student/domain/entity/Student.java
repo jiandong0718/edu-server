@@ -105,6 +105,12 @@ public class Student extends BaseEntity {
     private List<String> tags;
 
     /**
+     * 标签ID列表（非数据库字段）
+     */
+    @TableField(exist = false)
+    private List<Long> tagIds;
+
+    /**
      * 校区名称（非数据库字段）
      */
     @TableField(exist = false)

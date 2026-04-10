@@ -8,9 +8,11 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.common.exception.BusinessException;
 import com.edu.framework.mybatis.CampusContextHolder;
+import com.edu.marketing.domain.dto.LeadExportDTO;
 import com.edu.marketing.domain.dto.LeadImportDTO;
 import com.edu.marketing.domain.dto.LeadImportResultDTO;
 import com.edu.marketing.domain.entity.FollowUp;
@@ -34,6 +36,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 线索服务实现
@@ -185,6 +188,127 @@ public class LeadServiceImpl extends ServiceImpl<LeadMapper, Lead> implements Le
             wrapper.ne(Lead::getId, excludeId);
         }
         return count(wrapper) > 0;
+    }
+
+    @Override
+    public byte[] exportToExcel(Lead query) {
+        try {
+            List<Lead> leads = new ArrayList<>();
+            long current = 1;
+            long pageSize = 1000;
+
+            while (true) {
+                Page<Lead> page = new Page<>(current, pageSize);
+                IPage<Lead> result = baseMapper.selectLeadPage(page, query);
+                List<Lead> records = result.getRecords();
+                if (records == null || records.isEmpty()) {
+                    break;
+                }
+                leads.addAll(records);
+                if (records.size() < pageSize || current >= result.getPages()) {
+                    break;
+                }
+                current++;
+            }
+
+            List<LeadExportDTO> exportList = leads.stream()
+                    .map(this::convertToExportDTO)
+                    .collect(Collectors.toList());
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            EasyExcel.write(out, LeadExportDTO.class)
+                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                    .sheet("线索列表")
+                    .doWrite(exportList);
+
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.error("导出线索数据失败", e);
+            throw new BusinessException("导出失败：" + e.getMessage());
+        }
+    }
+
+    private LeadExportDTO convertToExportDTO(Lead lead) {
+        LeadExportDTO dto = new LeadExportDTO();
+        dto.setLeadNo(lead.getLeadNo());
+        dto.setName(lead.getName());
+        dto.setPhone(lead.getPhone());
+        dto.setGender(convertGenderToText(lead.getGender()));
+        dto.setAge(lead.getAge());
+        dto.setSource(convertSourceToText(lead.getSource()));
+        dto.setSourceDetail(lead.getSourceDetail());
+        dto.setSchool(lead.getSchool());
+        dto.setGrade(lead.getGrade());
+        dto.setIntentLevel(convertIntentLevelToText(lead.getIntentLevel()));
+        dto.setStatus(convertStatusToText(lead.getStatus()));
+        dto.setAdvisorName(lead.getAdvisorName());
+        dto.setCampusName(lead.getCampusName());
+        dto.setFollowCount(lead.getFollowCount());
+        dto.setLastFollowTime(formatDateTime(lead.getLastFollowTime()));
+        dto.setCreateTime(formatDateTime(lead.getCreateTime()));
+        dto.setRemark(lead.getRemark());
+        return dto;
+    }
+
+    private String convertGenderToText(Integer gender) {
+        if (gender == null) {
+            return "";
+        }
+        if (gender == 1) {
+            return "男";
+        }
+        if (gender == 2) {
+            return "女";
+        }
+        return "未知";
+    }
+
+    private String convertSourceToText(String source) {
+        if (StrUtil.isBlank(source)) {
+            return "";
+        }
+        return switch (source) {
+            case "offline" -> "地推";
+            case "referral" -> "转介绍";
+            case "online_ad" -> "线上广告";
+            case "walk_in" -> "自然到访";
+            case "phone" -> "电话咨询";
+            default -> source;
+        };
+    }
+
+    private String convertIntentLevelToText(String intentLevel) {
+        if (StrUtil.isBlank(intentLevel)) {
+            return "";
+        }
+        return switch (intentLevel) {
+            case "high" -> "高";
+            case "medium" -> "中";
+            case "low" -> "低";
+            default -> intentLevel;
+        };
+    }
+
+    private String convertStatusToText(String status) {
+        if (StrUtil.isBlank(status)) {
+            return "";
+        }
+        return switch (status) {
+            case "new" -> "新线索";
+            case "following" -> "跟进中";
+            case "appointed" -> "已预约";
+            case "trialed" -> "已试听";
+            case "converted" -> "已成交";
+            case "lost" -> "已流失";
+            default -> status;
+        };
+    }
+
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "";
+        }
+        return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
     private String generateLeadNo() {

@@ -32,6 +32,12 @@ public class ClassHourBalanceVO {
     private String studentName;
 
     /**
+     * 学员手机号
+     */
+    @Schema(description = "学员手机号")
+    private String studentPhone;
+
+    /**
      * 课程ID
      */
     @Schema(description = "课程ID")
@@ -42,6 +48,18 @@ public class ClassHourBalanceVO {
      */
     @Schema(description = "课程名称")
     private String courseName;
+
+    /**
+     * 校区ID
+     */
+    @Schema(description = "校区ID")
+    private Long campusId;
+
+    /**
+     * 校区名称
+     */
+    @Schema(description = "校区名称")
+    private String campusName;
 
     /**
      * 总课时

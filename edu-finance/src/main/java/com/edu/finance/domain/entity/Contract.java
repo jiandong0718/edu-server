@@ -109,6 +109,12 @@ public class Contract extends BaseEntity {
     private String studentName;
 
     /**
+     * 学员手机号（非数据库字段）
+     */
+    @TableField(exist = false)
+    private String studentPhone;
+
+    /**
      * 校区名称（非数据库字段）
      */
     @TableField(exist = false)

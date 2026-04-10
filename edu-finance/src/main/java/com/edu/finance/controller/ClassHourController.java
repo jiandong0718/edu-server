@@ -81,14 +81,13 @@ public class ClassHourController {
 
     @Operation(summary = "查询课时消耗记录")
     @GetMapping("/record")
-    public R<Page<ClassHourRecord>> getRecords(
+    public R<Page<ClassHourRecordVO>> getRecords(
             @Parameter(description = "学员ID") @RequestParam(required = false) Long studentId,
             @Parameter(description = "账户ID") @RequestParam(required = false) Long accountId,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<ClassHourRecord> page = new Page<>(pageNum, pageSize);
-        // TODO: 实现分页查询
-        return R.ok(page);
+        Page<ClassHourRecordVO> page = new Page<>(pageNum, pageSize);
+        return R.ok(classHourRecordService.pageRecords(page, studentId, accountId));
     }
 
     @Operation(summary = "统计学员课时使用情况")

@@ -1,23 +1,34 @@
 package com.edu.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.edu.common.core.R;
 import com.edu.finance.domain.dto.ApprovalRecordDTO;
+import com.edu.finance.domain.dto.ContractBatchPrintDTO;
 import com.edu.finance.domain.dto.ContractApprovalProcessDTO;
 import com.edu.finance.domain.dto.ContractApprovalQueryDTO;
+import com.edu.finance.domain.dto.ContractFormDTO;
 import com.edu.finance.domain.dto.ContractApprovalSubmitDTO;
 import com.edu.finance.domain.dto.ContractPrintDTO;
 import com.edu.finance.domain.entity.Contract;
 import com.edu.finance.domain.entity.ContractApproval;
 import com.edu.finance.domain.entity.ContractApprovalFlow;
+import com.edu.finance.domain.entity.ContractItem;
 import com.edu.finance.domain.entity.ContractPrintRecord;
 import com.edu.finance.domain.entity.ContractPrintTemplate;
+import com.edu.finance.domain.entity.Payment;
+import com.edu.finance.domain.entity.Refund;
+import com.edu.finance.domain.entity.ClassHourAccount;
 import com.edu.finance.domain.vo.ContractApprovalVO;
+import com.edu.finance.mapper.ContractItemMapper;
+import com.edu.finance.service.ClassHourAccountService;
 import com.edu.finance.service.ContractApprovalService;
 import com.edu.finance.service.ContractPdfGeneratorService;
 import com.edu.finance.service.ContractPdfService;
 import com.edu.finance.service.ContractPrintService;
 import com.edu.finance.service.ContractService;
+import com.edu.finance.service.PaymentService;
+import com.edu.finance.service.RefundService;
 import com.edu.framework.security.SecurityContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +58,10 @@ public class ContractController {
     private final ContractPdfGeneratorService contractPdfGeneratorService;
     private final ContractApprovalService contractApprovalService;
     private final ContractPrintService contractPrintService;
+    private final ContractItemMapper contractItemMapper;
+    private final PaymentService paymentService;
+    private final RefundService refundService;
+    private final ClassHourAccountService classHourAccountService;
 
     @Operation(summary = "分页查询合同列表")
     @GetMapping("/page")
@@ -59,15 +74,26 @@ public class ContractController {
         return R.ok(page);
     }
 
+    @Operation(summary = "分页查询合同列表（兼容前端旧路径）")
+    @GetMapping("/list")
+    public R<Page<Contract>> list(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            Contract query) {
+        Page<Contract> result = new Page<>(page, pageSize);
+        contractService.pageList(result, query);
+        return R.ok(result);
+    }
+
     @Operation(summary = "获取合同详情")
     @GetMapping("/{id}")
     public R<Contract> getById(@PathVariable Long id) {
-        return R.ok(contractService.getById(id));
+        return R.ok(contractService.getDetail(id));
     }
 
     @Operation(summary = "创建合同")
     @PostMapping
-    public R<Boolean> create(@RequestBody Contract contract) {
+    public R<Boolean> create(@RequestBody ContractFormDTO contract) {
         return R.ok(contractService.createContract(contract));
     }
 
@@ -75,6 +101,12 @@ public class ContractController {
     @PutMapping
     public R<Boolean> update(@RequestBody Contract contract) {
         return R.ok(contractService.updateById(contract));
+    }
+
+    @Operation(summary = "修改合同（兼容前端旧路径）")
+    @PutMapping("/{id}")
+    public R<Boolean> updateWithId(@PathVariable Long id, @RequestBody ContractFormDTO contract) {
+        return R.ok(contractService.updateContract(id, contract));
     }
 
     @Operation(summary = "签署合同")
@@ -93,6 +125,45 @@ public class ContractController {
     @DeleteMapping("/{id}")
     public R<Boolean> delete(@PathVariable Long id) {
         return R.ok(contractService.removeById(id));
+    }
+
+    @Operation(summary = "获取合同明细列表")
+    @GetMapping("/{id}/items")
+    public R<List<ContractItem>> getItems(@PathVariable Long id) {
+        return R.ok(contractItemMapper.selectByContractId(id));
+    }
+
+    @Operation(summary = "获取合同收款记录列表")
+    @GetMapping("/{id}/payments")
+    public R<List<Payment>> getPayments(@PathVariable Long id) {
+        List<Payment> payments = paymentService.list(
+                new LambdaQueryWrapper<Payment>()
+                        .eq(Payment::getContractId, id)
+                        .orderByDesc(Payment::getCreateTime)
+        );
+        return R.ok(payments);
+    }
+
+    @Operation(summary = "获取合同课时账户列表")
+    @GetMapping("/{id}/hour-accounts")
+    public R<List<ClassHourAccount>> getHourAccounts(@PathVariable Long id) {
+        List<ClassHourAccount> accounts = classHourAccountService.list(
+                new LambdaQueryWrapper<ClassHourAccount>()
+                        .eq(ClassHourAccount::getContractId, id)
+                        .orderByDesc(ClassHourAccount::getCreateTime)
+        );
+        return R.ok(accounts);
+    }
+
+    @Operation(summary = "获取合同退费申请列表")
+    @GetMapping("/{id}/refunds")
+    public R<List<Refund>> getRefunds(@PathVariable Long id) {
+        List<Refund> refunds = refundService.list(
+                new LambdaQueryWrapper<Refund>()
+                        .eq(Refund::getContractId, id)
+                        .orderByDesc(Refund::getCreateTime)
+        );
+        return R.ok(refunds);
     }
 
     @Operation(summary = "生成合同PDF")
@@ -210,9 +281,26 @@ public class ContractController {
     @Operation(summary = "批量打印合同")
     @PostMapping("/print/batch")
     public R<List<Long>> batchPrintContracts(
-            @RequestParam List<Long> contractIds,
+            @RequestBody(required = false) ContractBatchPrintDTO body,
+            @RequestParam(required = false) List<Long> contractIds,
             @RequestParam(required = false) Long templateId) {
-        List<Long> printIds = contractPrintService.batchPrintContracts(contractIds, templateId);
+        List<Long> resolvedContractIds = contractIds;
+        Long resolvedTemplateId = templateId;
+
+        if (body != null) {
+            if (body.getContractIds() != null && !body.getContractIds().isEmpty()) {
+                resolvedContractIds = body.getContractIds();
+            }
+            if (body.getTemplateId() != null) {
+                resolvedTemplateId = body.getTemplateId();
+            }
+        }
+
+        if (resolvedContractIds == null || resolvedContractIds.isEmpty()) {
+            return R.fail("合同ID列表不能为空");
+        }
+
+        List<Long> printIds = contractPrintService.batchPrintContracts(resolvedContractIds, resolvedTemplateId);
         return R.ok(printIds);
     }
 
@@ -284,5 +372,11 @@ public class ContractController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @Operation(summary = "下载合同PDF（兼容前端旧路径）")
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> download(@PathVariable Long id) {
+        return downloadPdf(id);
     }
 }

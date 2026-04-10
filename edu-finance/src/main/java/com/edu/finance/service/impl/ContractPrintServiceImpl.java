@@ -105,11 +105,13 @@ public class ContractPrintServiceImpl extends ServiceImpl<ContractPrintRecordMap
                 printIds.add(printId);
             } catch (Exception e) {
                 log.error("批量打印合同失败: contractId={}", contractId, e);
-                // 继续处理下一个合同
+                // 保持返回结果顺序与合同ID一一对应，便于前端按索引回填状态
+                printIds.add(null);
             }
         }
 
-        log.info("批量打印合同完成: total={}, success={}", contractIds.size(), printIds.size());
+        long successCount = printIds.stream().filter(id -> id != null).count();
+        log.info("批量打印合同完成: total={}, success={}", contractIds.size(), successCount);
         return printIds;
     }
 

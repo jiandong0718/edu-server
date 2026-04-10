@@ -1,7 +1,9 @@
 package com.edu.finance.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.edu.finance.domain.entity.ClassHourRecord;
+import com.edu.finance.domain.vo.ClassHourRecordVO;
 import com.edu.finance.mapper.ClassHourRecordMapper;
 import com.edu.finance.service.ClassHourRecordService;
 import lombok.RequiredArgsConstructor;
@@ -21,5 +23,10 @@ public class ClassHourRecordServiceImpl extends ServiceImpl<ClassHourRecordMappe
     @Override
     public List<ClassHourRecord> getByStudentId(Long studentId, Long accountId) {
         return baseMapper.selectByStudentId(studentId, accountId);
+    }
+
+    @Override
+    public Page<ClassHourRecordVO> pageRecords(Page<ClassHourRecordVO> page, Long studentId, Long accountId) {
+        return (Page<ClassHourRecordVO>) baseMapper.selectRecordPage(page, studentId, accountId);
     }
 }

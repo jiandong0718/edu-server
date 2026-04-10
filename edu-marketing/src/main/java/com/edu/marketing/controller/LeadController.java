@@ -111,6 +111,19 @@ public class LeadController {
 
     // ==================== 导入导出 ====================
 
+    @Operation(summary = "导出线索")
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> export(Lead query) {
+        byte[] data = leadService.exportToExcel(query);
+        String fileName = "leads_" + System.currentTimeMillis() + ".xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(data);
+    }
+
     @Operation(summary = "批量导入线索")
     @PostMapping("/import")
     public R<Boolean> importData(@RequestParam("file") MultipartFile file) throws IOException {

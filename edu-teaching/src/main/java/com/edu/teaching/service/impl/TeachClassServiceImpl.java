@@ -14,6 +14,7 @@ import com.edu.teaching.domain.vo.BatchClassGraduationResultVO;
 import com.edu.teaching.domain.vo.BatchClassPromotionResultVO;
 import com.edu.teaching.domain.vo.ClassGraduationResultVO;
 import com.edu.teaching.domain.vo.ClassPromotionResultVO;
+import com.edu.teaching.domain.vo.ClassStudentVO;
 import com.edu.teaching.event.ClassGraduationEvent;
 import com.edu.teaching.event.ClassPromotionEvent;
 import com.edu.teaching.mapper.ClassStudentMapper;
@@ -28,7 +29,10 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -86,29 +90,105 @@ public class TeachClassServiceImpl extends ServiceImpl<TeachClassMapper, TeachCl
     }
 
     @Override
-    public boolean addStudents(Long classId, List<Long> studentIds) {
-        // TODO: 实现学员分班逻辑
+    @Transactional(rollbackFor = Exception.class)
+    public boolean addStudents(Long classId, List<Long> studentIds, LocalDate joinDate) {
         TeachClass teachClass = getById(classId);
         if (teachClass == null) {
             throw new BusinessException("班级不存在");
         }
-        if (teachClass.getCurrentCount() + studentIds.size() > teachClass.getCapacity()) {
+
+        if (studentIds == null || studentIds.isEmpty()) {
+            return true;
+        }
+
+        Set<Long> uniqueStudentIds = studentIds.stream()
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (uniqueStudentIds.isEmpty()) {
+            return true;
+        }
+
+        List<ClassStudent> existingRelations = classStudentMapper.selectList(
+                new LambdaQueryWrapper<ClassStudent>()
+                        .eq(ClassStudent::getClassId, classId)
+                        .in(ClassStudent::getStudentId, uniqueStudentIds)
+        );
+        Map<Long, ClassStudent> relationByStudentId = existingRelations.stream()
+                .collect(Collectors.toMap(ClassStudent::getStudentId, relation -> relation));
+
+        int addableCount = (int) uniqueStudentIds.stream()
+                .filter(studentId -> {
+                    ClassStudent relation = relationByStudentId.get(studentId);
+                    return relation == null || !"active".equals(relation.getStatus());
+                })
+                .count();
+
+        int capacity = teachClass.getCapacity() == null ? Integer.MAX_VALUE : teachClass.getCapacity();
+        int activeCount = getActiveStudentCount(classId);
+        if (activeCount + addableCount > capacity) {
             throw new BusinessException("超出班级容量");
         }
-        // 更新当前人数
-        teachClass.setCurrentCount(teachClass.getCurrentCount() + studentIds.size());
-        return updateById(teachClass);
+
+        LocalDate resolvedJoinDate = joinDate != null ? joinDate : LocalDate.now();
+        for (Long studentId : uniqueStudentIds) {
+            ClassStudent existing = relationByStudentId.get(studentId);
+
+            if (existing == null) {
+                ClassStudent relation = new ClassStudent();
+                relation.setClassId(classId);
+                relation.setStudentId(studentId);
+                relation.setJoinDate(resolvedJoinDate);
+                relation.setLeaveDate(null);
+                relation.setStatus("active");
+                classStudentMapper.insert(relation);
+                continue;
+            }
+
+            if (!"active".equals(existing.getStatus())) {
+                existing.setStatus("active");
+                existing.setJoinDate(resolvedJoinDate);
+                existing.setLeaveDate(null);
+                classStudentMapper.updateById(existing);
+            }
+        }
+
+        return syncCurrentCount(classId);
     }
 
     @Override
-    public boolean removeStudent(Long classId, Long studentId) {
-        // TODO: 实现学员退班逻辑
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeStudent(Long classId, Long studentId, LocalDate leaveDate) {
         TeachClass teachClass = getById(classId);
         if (teachClass == null) {
             throw new BusinessException("班级不存在");
         }
-        teachClass.setCurrentCount(Math.max(0, teachClass.getCurrentCount() - 1));
-        return updateById(teachClass);
+
+        ClassStudent relation = classStudentMapper.selectOne(
+                new LambdaQueryWrapper<ClassStudent>()
+                        .eq(ClassStudent::getClassId, classId)
+                        .eq(ClassStudent::getStudentId, studentId)
+                        .eq(ClassStudent::getStatus, "active")
+                        .last("LIMIT 1")
+        );
+        if (relation == null) {
+            throw new BusinessException("学员不在当前班级");
+        }
+
+        LocalDate resolvedLeaveDate = leaveDate != null ? leaveDate : LocalDate.now();
+        relation.setStatus("left");
+        relation.setLeaveDate(resolvedLeaveDate);
+        classStudentMapper.updateById(relation);
+        return syncCurrentCount(classId);
+    }
+
+    @Override
+    public List<ClassStudentVO> listStudents(Long classId) {
+        TeachClass teachClass = getById(classId);
+        if (teachClass == null) {
+            throw new BusinessException("班级不存在");
+        }
+        return classStudentMapper.selectStudentsByClassId(classId);
     }
 
     @Override
@@ -447,5 +527,28 @@ public class TeachClassServiceImpl extends ServiceImpl<TeachClassMapper, TeachCl
         batchResult.setResults(results);
 
         return batchResult;
+    }
+
+    private int getActiveStudentCount(Long classId) {
+        Long count = classStudentMapper.selectCount(
+                new LambdaQueryWrapper<ClassStudent>()
+                        .eq(ClassStudent::getClassId, classId)
+                        .eq(ClassStudent::getStatus, "active")
+        );
+        return count == null ? 0 : count.intValue();
+    }
+
+    private boolean syncCurrentCount(Long classId) {
+        TeachClass teachClass = getById(classId);
+        if (teachClass == null) {
+            throw new BusinessException("班级不存在");
+        }
+
+        int activeCount = getActiveStudentCount(classId);
+        if (teachClass.getCurrentCount() != null && teachClass.getCurrentCount() == activeCount) {
+            return true;
+        }
+        teachClass.setCurrentCount(activeCount);
+        return updateById(teachClass);
     }
 }

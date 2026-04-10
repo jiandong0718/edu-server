@@ -1,9 +1,9 @@
 package com.edu.teaching.mapper;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
-
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.edu.teaching.domain.entity.ClassStudent;
+import com.edu.teaching.domain.vo.ClassStudentVO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -23,4 +23,9 @@ public interface ClassStudentMapper extends BaseMapper<ClassStudent> {
      * 查询学员所在的所有班级ID
      */
     List<Long> selectClassIdsByStudentId(@Param("studentId") Long studentId);
+
+    /**
+     * 查询班级学员列表（含学员基础信息与考勤汇总）
+     */
+    List<ClassStudentVO> selectStudentsByClassId(@Param("classId") Long classId);
 }

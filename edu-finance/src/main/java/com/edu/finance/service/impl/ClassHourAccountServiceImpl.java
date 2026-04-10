@@ -174,7 +174,7 @@ public class ClassHourAccountServiceImpl extends ServiceImpl<ClassHourAccountMap
             record.setType("consume");
             record.setHours(dto.getHours().negate()); // 负数表示扣减
             record.setBalance(newRemainingHours);
-            record.setRemark(dto.getRemark());
+            record.setRemark(dto.getReason());
             classHourRecordService.save(record);
 
             log.info("课时扣减成功: studentId={}, courseId={}, hours={}, remaining={}",

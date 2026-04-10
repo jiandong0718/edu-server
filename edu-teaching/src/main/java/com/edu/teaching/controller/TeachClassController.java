@@ -9,6 +9,7 @@ import com.edu.teaching.domain.dto.ClassPromotionDTO;
 import com.edu.teaching.domain.entity.TeachClass;
 import com.edu.teaching.domain.vo.BatchClassGraduationResultVO;
 import com.edu.teaching.domain.vo.BatchClassPromotionResultVO;
+import com.edu.teaching.domain.vo.ClassStudentVO;
 import com.edu.teaching.domain.vo.ClassGraduationResultVO;
 import com.edu.teaching.domain.vo.ClassPromotionResultVO;
 import com.edu.teaching.service.TeachClassService;
@@ -16,8 +17,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -88,14 +91,26 @@ public class TeachClassController {
 
     @Operation(summary = "学员分班")
     @PostMapping("/{classId}/students")
-    public R<Boolean> addStudents(@PathVariable Long classId, @RequestBody List<Long> studentIds) {
-        return R.ok(classService.addStudents(classId, studentIds));
+    public R<Boolean> addStudents(@PathVariable Long classId,
+                                  @RequestBody List<Long> studentIds,
+                                  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                  @RequestParam(required = false) LocalDate joinDate) {
+        return R.ok(classService.addStudents(classId, studentIds, joinDate));
     }
 
     @Operation(summary = "学员退班")
     @DeleteMapping("/{classId}/students/{studentId}")
-    public R<Boolean> removeStudent(@PathVariable Long classId, @PathVariable Long studentId) {
-        return R.ok(classService.removeStudent(classId, studentId));
+    public R<Boolean> removeStudent(@PathVariable Long classId,
+                                    @PathVariable Long studentId,
+                                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                    @RequestParam(required = false) LocalDate leaveDate) {
+        return R.ok(classService.removeStudent(classId, studentId, leaveDate));
+    }
+
+    @Operation(summary = "查询班级学员列表")
+    @GetMapping("/{classId}/students")
+    public R<List<ClassStudentVO>> listStudents(@PathVariable Long classId) {
+        return R.ok(classService.listStudents(classId));
     }
 
     @Operation(summary = "班级升班")

@@ -35,8 +35,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 学员服务实现
@@ -65,6 +67,16 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                             .orderByDesc(StudentContact::getIsPrimary)
             );
             student.setContacts(contacts);
+
+            // 获取标签ID列表
+            List<Long> tagIds = tagRelationMapper.selectList(
+                            new LambdaQueryWrapper<StudentTagRelation>()
+                                    .eq(StudentTagRelation::getStudentId, id)
+                    ).stream()
+                    .map(StudentTagRelation::getTagId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            student.setTagIds(tagIds);
         }
         return student;
     }
@@ -97,6 +109,10 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             }
         }
 
+        if (result) {
+            syncStudentTags(student.getId(), student.getTagIds());
+        }
+
         return result;
     }
 
@@ -108,7 +124,11 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             throw new BusinessException("手机号已存在");
         }
 
-        return updateById(student);
+        boolean updated = updateById(student);
+        if (updated && student.getTagIds() != null) {
+            syncStudentTags(student.getId(), student.getTagIds());
+        }
+        return updated;
     }
 
     @Override
@@ -117,6 +137,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         // 删除联系人
         contactMapper.delete(new LambdaQueryWrapper<StudentContact>()
                 .eq(StudentContact::getStudentId, id));
+        // 删除标签关联
+        tagRelationMapper.delete(new LambdaQueryWrapper<StudentTagRelation>()
+                .eq(StudentTagRelation::getStudentId, id));
         // 删除学员
         return removeById(id);
     }
@@ -127,6 +150,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         // 删除联系人
         contactMapper.delete(new LambdaQueryWrapper<StudentContact>()
                 .in(StudentContact::getStudentId, ids));
+        // 删除标签关联
+        tagRelationMapper.delete(new LambdaQueryWrapper<StudentTagRelation>()
+                .in(StudentTagRelation::getStudentId, ids));
         // 删除学员
         return removeByIds(ids);
     }
@@ -165,19 +191,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean setTags(Long studentId, List<Long> tagIds) {
-        // 删除原有标签关联
-        tagRelationMapper.delete(new LambdaQueryWrapper<StudentTagRelation>()
-                .eq(StudentTagRelation::getStudentId, studentId));
-
-        // 添加新的标签关联
-        if (CollUtil.isNotEmpty(tagIds)) {
-            for (Long tagId : tagIds) {
-                StudentTagRelation relation = new StudentTagRelation();
-                relation.setStudentId(studentId);
-                relation.setTagId(tagId);
-                tagRelationMapper.insert(relation);
-            }
-        }
+        syncStudentTags(studentId, tagIds);
         return true;
     }
 
@@ -736,5 +750,30 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         contact.setReceiveNotify(true);
 
         return contact;
+    }
+
+    private void syncStudentTags(Long studentId, List<Long> tagIds) {
+        if (studentId == null || tagIds == null) {
+            return;
+        }
+
+        tagRelationMapper.delete(new LambdaQueryWrapper<StudentTagRelation>()
+                .eq(StudentTagRelation::getStudentId, studentId));
+
+        if (CollUtil.isEmpty(tagIds)) {
+            return;
+        }
+
+        List<Long> normalizedTagIds = tagIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        for (Long tagId : normalizedTagIds) {
+            StudentTagRelation relation = new StudentTagRelation();
+            relation.setStudentId(studentId);
+            relation.setTagId(tagId);
+            tagRelationMapper.insert(relation);
+        }
     }
 }

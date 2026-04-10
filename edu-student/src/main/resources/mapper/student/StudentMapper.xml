@@ -9,6 +9,7 @@
         <result property="gender" column="gender"/>
         <result property="birthday" column="birthday"/>
         <result property="phone" column="phone"/>
+        <result property="idCard" column="id_card"/>
         <result property="avatar" column="avatar"/>
         <result property="school" column="school"/>
         <result property="grade" column="grade"/>
@@ -18,6 +19,7 @@
         <result property="campusName" column="campus_name"/>
         <result property="advisorId" column="advisor_id"/>
         <result property="advisorName" column="advisor_name"/>
+        <result property="address" column="address"/>
         <result property="remark" column="remark"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>

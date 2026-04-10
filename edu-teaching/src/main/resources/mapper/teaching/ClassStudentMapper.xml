@@ -2,6 +2,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.edu.teaching.mapper.ClassStudentMapper">
 
+    <resultMap id="ClassStudentVOResult" type="com.edu.teaching.domain.vo.ClassStudentVO">
+        <id property="id" column="id"/>
+        <result property="classId" column="class_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="studentAvatar" column="student_avatar"/>
+        <result property="studentPhone" column="student_phone"/>
+        <result property="parentPhone" column="parent_phone"/>
+        <result property="joinDate" column="join_date"/>
+        <result property="leaveDate" column="leave_date"/>
+        <result property="status" column="status"/>
+        <result property="attendanceRate" column="attendance_rate"/>
+        <result property="completedHours" column="completed_hours"/>
+    </resultMap>
+
     <select id="selectStudentIdsByClassId" resultType="java.lang.Long">
         SELECT student_id
         FROM tch_class_student
@@ -16,6 +31,45 @@
         WHERE student_id = #{studentId}
           AND status = 'active'
           AND deleted = 0
+    </select>
+
+    <select id="selectStudentsByClassId" resultMap="ClassStudentVOResult">
+        SELECT cs.id,
+               cs.class_id,
+               cs.student_id,
+               cs.join_date,
+               cs.leave_date,
+               cs.status,
+               s.name  AS student_name,
+               s.avatar AS student_avatar,
+               s.phone AS student_phone,
+               pc.parent_phone,
+               COALESCE(att.attendance_rate, 0) AS attendance_rate,
+               COALESCE(att.completed_hours, 0) AS completed_hours
+        FROM tch_class_student cs
+                 LEFT JOIN stu_student s ON s.id = cs.student_id AND s.deleted = 0
+                 LEFT JOIN (SELECT c.student_id,
+                                   COALESCE(MAX(CASE WHEN c.is_primary = 1 THEN c.phone END), MAX(c.phone)) AS parent_phone
+                            FROM stu_contact c
+                            WHERE c.deleted = 0
+                            GROUP BY c.student_id) pc ON pc.student_id = cs.student_id
+                 LEFT JOIN (SELECT a.class_id,
+                                   a.student_id,
+                                   ROUND(SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100.0 /
+                                         NULLIF(COUNT(1), 0), 2) AS attendance_rate,
+                                   COALESCE(SUM(a.class_hours), 0) AS completed_hours
+                            FROM tch_attendance a
+                            WHERE a.deleted = 0
+                            GROUP BY a.class_id, a.student_id) att ON att.class_id = cs.class_id AND att.student_id = cs.student_id
+        WHERE cs.class_id = #{classId}
+          AND cs.deleted = 0
+        ORDER BY CASE cs.status
+                     WHEN 'active' THEN 1
+                     WHEN 'graduated' THEN 2
+                     ELSE 3
+                 END,
+                 cs.join_date DESC,
+                 cs.id DESC
     </select>
 
 </mapper>

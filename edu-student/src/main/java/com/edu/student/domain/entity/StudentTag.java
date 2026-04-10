@@ -1,5 +1,6 @@
 package com.edu.student.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.edu.common.core.BaseEntity;
 import lombok.Data;
@@ -32,4 +33,10 @@ public class StudentTag extends BaseEntity {
      * 校区ID（null表示全局标签）
      */
     private Long campusId;
+
+    /**
+     * 标签使用人数（非数据库字段）
+     */
+    @TableField(exist = false)
+    private Integer usageCount;
 }

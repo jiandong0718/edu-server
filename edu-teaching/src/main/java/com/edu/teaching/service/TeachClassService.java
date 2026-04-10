@@ -11,7 +11,9 @@ import com.edu.teaching.domain.vo.BatchClassGraduationResultVO;
 import com.edu.teaching.domain.vo.BatchClassPromotionResultVO;
 import com.edu.teaching.domain.vo.ClassGraduationResultVO;
 import com.edu.teaching.domain.vo.ClassPromotionResultVO;
+import com.edu.teaching.domain.vo.ClassStudentVO;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -42,12 +44,17 @@ public interface TeachClassService extends IService<TeachClass> {
     /**
      * 学员分班
      */
-    boolean addStudents(Long classId, List<Long> studentIds);
+    boolean addStudents(Long classId, List<Long> studentIds, LocalDate joinDate);
 
     /**
      * 学员退班
      */
-    boolean removeStudent(Long classId, Long studentId);
+    boolean removeStudent(Long classId, Long studentId, LocalDate leaveDate);
+
+    /**
+     * 查询班级学员列表
+     */
+    List<ClassStudentVO> listStudents(Long classId);
 
     /**
      * 班级升班

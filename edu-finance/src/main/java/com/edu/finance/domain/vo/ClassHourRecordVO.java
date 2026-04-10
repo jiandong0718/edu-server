@@ -68,6 +68,12 @@ public class ClassHourRecordVO {
     private BigDecimal hours;
 
     /**
+     * 变动前余额
+     */
+    @Schema(description = "变动前余额")
+    private BigDecimal beforeHours;
+
+    /**
      * 变动后余额
      */
     @Schema(description = "变动后余额")

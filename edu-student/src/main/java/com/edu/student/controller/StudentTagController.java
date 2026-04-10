@@ -40,8 +40,7 @@ public class StudentTagController {
                 .eq(campusId != null, StudentTag::getCampusId, campusId)
                 .orderByAsc(StudentTag::getSortOrder)
                 .orderByDesc(StudentTag::getCreateTime);
-        studentTagService.page(page, wrapper);
-        return R.ok(page);
+        return R.ok(studentTagService.pageWithUsage(page, wrapper));
     }
 
     @Operation(summary = "获取标签列表")
@@ -53,13 +52,13 @@ public class StudentTagController {
             wrapper.and(w -> w.eq(StudentTag::getCampusId, campusId).or().isNull(StudentTag::getCampusId));
         }
         wrapper.orderByAsc(StudentTag::getSortOrder);
-        return R.ok(studentTagService.list(wrapper));
+        return R.ok(studentTagService.listWithUsage(wrapper));
     }
 
     @Operation(summary = "获取标签详情")
     @GetMapping("/{id}")
     public R<StudentTag> getById(@Parameter(description = "标签ID") @PathVariable Long id) {
-        return R.ok(studentTagService.getById(id));
+        return R.ok(studentTagService.getByIdWithUsage(id));
     }
 
     @Operation(summary = "新增标签")

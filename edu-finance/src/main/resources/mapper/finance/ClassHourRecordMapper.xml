@@ -14,4 +14,43 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectRecordPage" resultType="com.edu.finance.domain.vo.ClassHourRecordVO">
+        SELECT
+            r.id,
+            r.account_id as accountId,
+            r.student_id as studentId,
+            s.name as studentName,
+            c.name as courseName,
+            r.schedule_id as scheduleId,
+            r.type,
+            CASE
+                WHEN r.type = 'gift' THEN '赠送'
+                WHEN r.type = 'adjust' AND r.hours >= 0 THEN '赠送'
+                WHEN r.type = 'adjust' AND r.hours < 0 THEN '扣减'
+                WHEN r.type = 'refund' THEN '扣减'
+                WHEN r.type = 'revoke' THEN '撤销'
+                ELSE '消耗'
+            END as typeDesc,
+            r.hours,
+            (r.balance - r.hours) as beforeHours,
+            r.balance,
+            r.remark,
+            r.create_by as createBy,
+            u.real_name as createByName,
+            r.create_time as createTime
+        FROM fin_class_hour_record r
+        LEFT JOIN stu_student s ON r.student_id = s.id
+        LEFT JOIN fin_class_hour_account a ON r.account_id = a.id
+        LEFT JOIN tch_course c ON a.course_id = c.id
+        LEFT JOIN sys_user u ON r.create_by = u.id
+        WHERE r.deleted = 0
+        <if test="studentId != null">
+            AND r.student_id = #{studentId}
+        </if>
+        <if test="accountId != null">
+            AND r.account_id = #{accountId}
+        </if>
+        ORDER BY r.create_time DESC
+    </select>
+
 </mapper>

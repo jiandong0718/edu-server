@@ -7,6 +7,7 @@
         <result property="contractNo" column="contract_no"/>
         <result property="studentId" column="student_id"/>
         <result property="studentName" column="student_name"/>
+        <result property="studentPhone" column="student_phone"/>
         <result property="campusId" column="campus_id"/>
         <result property="campusName" column="campus_name"/>
         <result property="type" column="type"/>
@@ -29,6 +30,7 @@
     <select id="selectContractPage" resultMap="ContractResult">
         SELECT c.*,
                s.name as student_name,
+               s.phone as student_phone,
                ca.name as campus_name,
                u.real_name as sales_name
         FROM fin_contract c
@@ -38,6 +40,12 @@
         WHERE c.deleted = 0
         <if test="query.contractNo != null and query.contractNo != ''">
             AND c.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
+        </if>
+        <if test="query.studentName != null and query.studentName != ''">
+            AND s.name LIKE CONCAT('%', #{query.studentName}, '%')
+        </if>
+        <if test="query.studentPhone != null and query.studentPhone != ''">
+            AND s.phone LIKE CONCAT('%', #{query.studentPhone}, '%')
         </if>
         <if test="query.studentId != null">
             AND c.student_id = #{query.studentId}
@@ -52,6 +60,20 @@
             AND c.type = #{query.type}
         </if>
         ORDER BY c.create_time DESC
+    </select>
+
+    <select id="selectContractDetail" resultMap="ContractResult">
+        SELECT c.*,
+               s.name as student_name,
+               s.phone as student_phone,
+               ca.name as campus_name,
+               u.real_name as sales_name
+        FROM fin_contract c
+        LEFT JOIN stu_student s ON c.student_id = s.id
+        LEFT JOIN sys_campus ca ON c.campus_id = ca.id
+        LEFT JOIN sys_user u ON c.sales_id = u.id
+        WHERE c.id = #{id}
+          AND c.deleted = 0
     </select>
 
 </mapper>

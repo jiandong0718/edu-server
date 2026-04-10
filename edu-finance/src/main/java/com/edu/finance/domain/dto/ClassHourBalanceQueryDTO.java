@@ -33,4 +33,22 @@ public class ClassHourBalanceQueryDTO {
      */
     @Schema(description = "状态：active-正常，frozen-冻结，exhausted-已用完")
     private String status;
+
+    /**
+     * 学员姓名（模糊匹配）
+     */
+    @Schema(description = "学员姓名（模糊匹配）")
+    private String studentName;
+
+    /**
+     * 学员手机号（模糊匹配）
+     */
+    @Schema(description = "学员手机号（模糊匹配）")
+    private String studentPhone;
+
+    /**
+     * 课程名称（模糊匹配）
+     */
+    @Schema(description = "课程名称（模糊匹配）")
+    private String courseName;
 }
